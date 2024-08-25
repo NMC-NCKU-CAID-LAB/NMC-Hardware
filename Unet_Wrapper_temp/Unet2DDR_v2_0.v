@@ -428,7 +428,8 @@
 		.M_AXI_RREADY(m02_axi_rready)
 	);
 
-	// Add user logic here
+// Add user logic here
+// Instantiation of base_address_rd
 	base_address_rd #(
 		.START_ADDR(BRAM_BASEADDRESS_START_ADDR)
 	)base_address_rd_inst(
@@ -448,6 +449,7 @@
 		.Transfer_Done(m01_start_flag)
 	);
 
+// Instantiation of CWBP_Decoder
 	CWBP_Decoder #(
     	.C_DATA_WIDTH(C_CWBP_DATA_WIDTH)
 	) CWBP_Decoder_inst(

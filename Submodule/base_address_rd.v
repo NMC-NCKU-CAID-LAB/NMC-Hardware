@@ -34,7 +34,12 @@ always @(posedge clk or negedge rst_n) begin
         counter <= 1'b0;    
     end 
     else begin
+      if (counter) begin
+        counter <= counter;        
+      end
+      else begin
         counter <= counter + 1'b1;
+      end
     end
 end
 
