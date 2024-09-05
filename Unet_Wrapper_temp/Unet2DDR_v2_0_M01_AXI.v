@@ -524,7 +524,26 @@
 		endcase
 	end
 	end
+	
+//----------------------- counter for mapping table -----------------------//
+		//counter
+		[10:0] mp_counter 
+		
+		always @(posedge M_AXI_ACLK or M_AXI_ARESETN) 
+		begin
+				if(M_AXI_ARESETN == 0)
+					begin
+						mp_counter	<=	 11'd0;
+					end
+				else if(mp_counter_flag)
+						mp_counter	<=	mp_counter	+ 1;
+		end
 
+		// mp_counter_flag (use pulse)
+
+
+
+//------------------------------ not use --------------------------------//
 //axi_rready 
 	  always @(posedge M_AXI_ACLK)                                          
 	  begin                                                                 
