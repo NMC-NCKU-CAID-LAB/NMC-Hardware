@@ -177,6 +177,7 @@
 	assign Trans_done   = ((S_cur == Transfer) && (count == 3'd7))? 1'b1 : 1'b0;	
 	assign check_M02_state_flag	 =	Trigger_done;
 //<-----------Control Signal END------------------->
+
 //<-----------------count-------------------------->
 	// <Conut the number of command write into prticular place>
 		always @(posedge M_AXI_ACLK) begin
@@ -240,11 +241,15 @@
 
 	assign M_AXI_AWID	= 'b0;
 	assign M_AXI_AWADDR	= C_M_TARGET_SLAVE_BASE_ADDR + axi_awaddr;
+	
+	
 	assign M_AXI_AWLEN	= C_M_AXI_BURST_LEN - 1;
+
+
 	assign M_AXI_AWSIZE	= 3'b010;
 	//clogb2((C_M_AXI_DATA_WIDTH/8)-1);
 	assign M_AXI_AWBURST	= 2'b01;
-	assign M_AXI_AWLOCK	= 1'b0;
+	assign M_AXI_AWLOCK		= 1'b0;
 	assign M_AXI_AWCACHE	= 4'b0010;
 	assign M_AXI_AWPROT	= 3'h0;
 	assign M_AXI_AWQOS	= 4'h0;
@@ -374,21 +379,21 @@
 	always @(*)begin
 		case(S_cur)
 			Init:begin
-			if (init_txn_pulse) S_next = Trigger;
-			else 				S_next = Init;
-
+				if (init_txn_pulse && axi_awvalid && M_AXI_AWREADY) S_next = Trigger;
+				else 				S_next = Init;
 			end
 			Trigger:begin
-			if(Trigger_done)  S_next = Check;
-			else              S_next = Trigger;
+				if(Trigger_done)  S_next = Check;
+				else              S_next = Trigger;
 			end
 			Check:begin
-			if(Check_done)    S_next = Transfer;
-			else              S_next = Check;
+				if(Check_done)    S_next = Transfer;
+				else              S_next = Check;
 			end
 			default:begin       //transfer
-			if(Trans_done)    S_next = Init;
-			else              S_next = Transfer;
+				if(Trans_done && !MP_done && Data_done)			S_next = Init;
+				else if(Trans_done && MP_done && !Data_done)	S_next = Trigger;
+				else              								S_next = Transfer;
 			end
 		endcase
 	end
@@ -426,7 +431,7 @@
 	end
 	else begin
 		// axi_awsize   <= 3'b010;
-		axi_wlast    <= 1'b1;
+
 		case(S_cur)
 		Trigger:begin
 		case (count)
@@ -445,10 +450,12 @@
 			3'd3: begin             //write done flag into nsc_base_address + CC_register_offset
 			axi_awaddr   <= {C_M_FLASH_CHANNEL,CC_register_offset};
 			axi_wdata    <= 32'h0000_0001;
+			axi_wlast    <= 1'b1;
 			end
 			default: begin           //otherwise                                                                //need check wlast
 			axi_awaddr   <= 32'h0000_0000;
 			axi_wdata    <= 32'h0000_0000;
+			axi_wlast    <= 1'b0;
 			end
 		endcase
 		end
@@ -526,22 +533,35 @@
 	end
 	
 //----------------------- counter for mapping table -----------------------//
-		//counter
-		[10:0] mp_counter 
-		
-		always @(posedge M_AXI_ACLK or M_AXI_ARESETN) 
-		begin
-				if(M_AXI_ARESETN == 0)
-					begin
-						mp_counter	<=	 11'd0;
-					end
-				else if(mp_counter_flag)
-						mp_counter	<=	mp_counter	+ 1;
+	//counter
+
+	reg [10:0] mp_counter;
+	
+	always @(posedge M_AXI_ACLK or M_AXI_ARESETN) begin
+		if(M_AXI_ARESETN == 0) begin
+			mp_counter	<=	 11'd0;
 		end
+		else if(mp_counter_flag) begin  //use Trans done sig.
+			mp_counter	<=	mp_counter	+ 1;
+		end
+		else begin
+			mp_counter	<=	mp_counter;
+		end
+	end
 
-		// mp_counter_flag (use pulse)
-
-
+	// mp_counter_flag (use pulse)
+	always @(posedge M_AXI_ACLK or M_AXI_ARESETN) begin
+		if (M_AXI_ARESETN == 0)                                                   
+		begin                                                                    
+			init_txn_ff <= 1'b0;                                                   
+			init_txn_ff2 <= 1'b0;                                                   
+		end                                                                               
+		else                                                                       
+			begin  
+			init_txn_ff <= INIT_AXI_TXN;
+			init_txn_ff2 <= init_txn_ff;                                                                 
+			end  
+		end	
 
 //------------------------------ not use --------------------------------//
 //axi_rready 
