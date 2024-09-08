@@ -168,14 +168,27 @@
 // <------------------FSM_End---------------------->
 //<---------------Control Signal------------------->
 	wire addr_done;
-	wire Trigger_done, Check_done, Trans_done, Read_done, Write_done;
+	wire Trigger_done, Check_done, Trans_done, Read_done;//, writes_done;
 	reg [2:0] count;
 	reg [2:0] S_cur, S_next;
 		
-	assign Trigger_done = ((S_cur == Trigger) && (count == 3'd4))? 1'b1 : 1'b0;
-	assign Check_done   = ((S_cur == Check) && (count == 3'd5))? 1'b1 : 1'b0;
-	assign Trans_done   = ((S_cur == Transfer) && (count == 3'd7))? 1'b1 : 1'b0;	
+	assign Trigger_done = ((S_cur == Trigger) && writes_done)? 1'b1 : 1'b0;
+	assign Check_done   = ((S_cur == Check) && writes_done)? 1'b1 : 1'b0;
+	assign Trans_done   = ((S_cur == Transfer) && writes_done)? 1'b1 : 1'b0;	
 	assign check_M02_state_flag	 =	Trigger_done;
+
+	always @(posedge M_AXI_ACLK)                                                                              
+	  begin                                                                                                     
+	    if (M_AXI_ARESETN == 0 || init_txn_pulse == 1'b1)                                                                                 
+	      writes_done <= 1'b0;                                                                                  
+	                                                                                                            
+	    //The writes_done should be associated with a bready response                                           
+	    //else if (M_AXI_BVALID && axi_bready && (write_burst_counter == {(C_NO_BURSTS_REQ-1){1}}) && axi_wlast)
+	    else if (M_AXI_BVALID && (write_burst_counter[C_NO_BURSTS_REQ]) && axi_bready && axi_wlast)                          
+	      writes_done <= 1'b1;                                                                                  
+	    else                                                                                                    
+	      writes_done <= writes_done;                                                                           
+	  end  
 //<-----------Control Signal END------------------->
 
 //<-----------------count-------------------------->
@@ -331,7 +344,66 @@
 	    else                                                                            
 	      axi_wvalid <= axi_wvalid;                                                     
 	  end    
-// <---------- Write DATA Channel END---------------->   
+
+	//data
+	always @(posedge M_AXI_ACLK)                                         
+	  begin                                                                
+	    if (M_AXI_ARESETN == 0 || init_txn_pulse == 1'b1)                                            
+	      begin                                                            
+	        axi_awaddr <= 'b0;                                             
+	      end                                                              
+	    else if (M_AXI_AWREADY && axi_awvalid)                             
+	      begin
+	        axi_awaddr <= C_M_FLASH_CHANNEL + C_M_AXI_DATA_WIDTH/8;   			                                                            
+	        // axi_awaddr <= axi_awaddr + burst_size_bytes;                   
+	      end                                                              
+	    else                                                               
+	      axi_awaddr <= axi_awaddr;                                        
+	 end    
+
+// <---------- Write DATA Channel END----------------> 
+
+// <-------------- Write Data Last ------------------->
+	always @(posedge M_AXI_ACLK)                                                      
+	  begin                                                                             
+	    if (M_AXI_ARESETN == 0 || init_txn_pulse == 1'b1 )                                                        
+	      begin                                                                         
+	        axi_wlast <= 1'b0;                                                          
+	      end
+		else if (((write_index == C_M_AXI_BURST_LEN-2 && C_M_AXI_BURST_LEN >= 2) && wnext) || (C_M_AXI_BURST_LEN == 1 ))
+	      begin                                                                         
+	        axi_wlast <= 1'b1;                                                          
+	      end
+		else if (wnext)                                                                 
+	      axi_wlast <= 1'b0;                                                            
+	    else if (axi_wlast && C_M_AXI_BURST_LEN == 1)                                   
+	      axi_wlast <= 1'b0;                                                            
+	    else                                                                            
+	      axi_wlast <= axi_wlast;                                                       
+	  end                                                         
+// <---------- Write DATA Last END---------------->   
+
+// <---------- write_index (Brust Len counter)----------------> 
+	  always @(posedge M_AXI_ACLK)                                                      
+	  begin                                                                             
+	    if (M_AXI_ARESETN == 0 || init_txn_pulse == 1'b1 || start_single_burst_write == 1'b1)    
+	      begin                                                                         
+	        write_index <= 0;                                                           
+	      end                                                                           
+	    else if (wnext && (write_index != C_M_AXI_BURST_LEN-1))                         
+	      begin                                                                         
+	        write_index <= write_index + 1;                                             
+	      end                                                                           
+	    else                                                                            
+	      write_index <= write_index;                                                   
+	  end  
+
+// <---------- write_index (Brust Len counter) end----------------> 
+	
+//Forward movement occurs when the write channel is valid and ready
+
+	  assign wnext = M_AXI_WREADY & M_AXI_WVALID;//axi_wvalid;  
+
 
 // <---------- Read Address Channel ---------------->
 	always @(posedge M_AXI_ACLK) begin                                                              																			
@@ -427,13 +499,18 @@
 		axi_awaddr   <= 32'h0000_0000;
 		// axi_awsize   <= 3'b0;
 		axi_wdata    <= 32'b0;
-		axi_wlast    <= 1'b0;
 	end
 	else begin
 		// axi_awsize   <= 3'b010;
 
 		case(S_cur)
 		Trigger:begin
+			if () begin
+				axi_wdata    <= 32'h0000_0000;
+			end 
+			else begin
+				
+			end
 		case (count)
 			3'd0: begin             //write opcode into nsc_base_address + SP_register_offset
 			axi_awaddr   <= {C_M_FLASH_CHANNEL,SP_register_offset};
@@ -450,12 +527,10 @@
 			3'd3: begin             //write done flag into nsc_base_address + CC_register_offset
 			axi_awaddr   <= {C_M_FLASH_CHANNEL,CC_register_offset};
 			axi_wdata    <= 32'h0000_0001;
-			axi_wlast    <= 1'b1;
 			end
-			default: begin           //otherwise                                                                //need check wlast
+			default: begin           //otherwise
 			axi_awaddr   <= 32'h0000_0000;
 			axi_wdata    <= 32'h0000_0000;
-			axi_wlast    <= 1'b0;
 			end
 		endcase
 		end
@@ -526,7 +601,6 @@
 		default:begin
 		axi_awaddr   <= 32'b0;
 		axi_wdata    <= 32'b0;
-		axi_wlast    <= 1'b0;      //need check
 		end
 		endcase
 	end
