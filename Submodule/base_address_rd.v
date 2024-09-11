@@ -26,8 +26,8 @@ assign ram_we   = 4'b0;
 assign ram_wd_data = 32'd0;
 
 
-reg [1:0]counter;
-assign Transfer_Done    =   (counter[1]) ? 1'b1 : 1'b0;
+reg counter;
+assign Transfer_Done    =   (counter) ? 1'b1 : 1'b0;
 
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
@@ -48,7 +48,7 @@ always @(posedge clk or negedge rst_n) begin
         ram_addr <= 32'd0;
     end
     else begin
-        if(counter ==2'd0)
+        if(counter == 0)
             ram_addr    <= START_ADDR;
         else
             ram_addr    <= 32'd0;

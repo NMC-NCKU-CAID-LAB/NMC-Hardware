@@ -171,7 +171,13 @@
 	wire Trigger_done, Check_done, Trans_done, Read_done;//, writes_done;
 	reg [2:0] count;
 	reg [2:0] S_cur, S_next;
-		
+	reg [10:0] mp_counter;
+	wire mp_counter_flag;// (use pulse)	
+	wire mp_done;  // revise times 
+
+	assign	mp_counter_flag	=	Trans_done;
+	assign	mp_done			=	(mp_counter == 100) ? 1'b1 : 1'b0;
+
 	assign Trigger_done = ((S_cur == Trigger) && writes_done)? 1'b1 : 1'b0;
 	assign Check_done   = ((S_cur == Check) && writes_done)? 1'b1 : 1'b0;
 	assign Trans_done   = ((S_cur == Transfer) && writes_done)? 1'b1 : 1'b0;	
@@ -463,8 +469,8 @@
 				else              S_next = Check;
 			end
 			default:begin       //transfer
-				if(Trans_done && !MP_done && Data_done)			S_next = Init;
-				else if(Trans_done && MP_done && !Data_done)	S_next = Trigger;
+				if(Trans_done && !mp_done)			S_next = Init;   // && Data_done
+				else if(Trans_done && mp_done)	S_next = Trigger;    //  && !Data_done 
 				else              								S_next = Transfer;
 			end
 		endcase
@@ -618,10 +624,7 @@
 	
 //----------------------- counter for mapping table -----------------------//
 	//counter
-
-	reg [10:0] mp_counter;
-	
-	always @(posedge M_AXI_ACLK or M_AXI_ARESETN) begin
+	always @(posedge M_AXI_ACLK or posedge M_AXI_ARESETN) begin
 		if(M_AXI_ARESETN == 0) begin
 			mp_counter	<=	 11'd0;
 		end
@@ -632,20 +635,6 @@
 			mp_counter	<=	mp_counter;
 		end
 	end
-
-	// mp_counter_flag (use pulse)
-	always @(posedge M_AXI_ACLK or M_AXI_ARESETN) begin
-		if (M_AXI_ARESETN == 0)                                                   
-		begin                                                                    
-			init_txn_ff <= 1'b0;                                                   
-			init_txn_ff2 <= 1'b0;                                                   
-		end                                                                               
-		else                                                                       
-			begin  
-			init_txn_ff <= INIT_AXI_TXN;
-			init_txn_ff2 <= init_txn_ff;                                                                 
-			end  
-		end	
 
 //------------------------------ not use --------------------------------//
 //axi_rready 
