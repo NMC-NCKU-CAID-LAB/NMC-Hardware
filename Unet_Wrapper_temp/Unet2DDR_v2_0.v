@@ -460,4 +460,11 @@
 
 	// User logic ends
 
+// //  Mapping_Table_info_buffer
+// 	reg [4:0] MT_info_buffer [31:0];
+// 	integer i;
+
+
+
+
 	endmodule
