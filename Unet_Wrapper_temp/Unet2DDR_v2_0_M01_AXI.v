@@ -179,6 +179,7 @@
 	assign	mp_done			=	(mp_counter == 100) ? 1'b1 : 1'b0;
 
 	assign Trigger_done = ((S_cur == Trigger) && writes_done)? 1'b1 : 1'b0;
+
 	assign Check_done   = ((S_cur == Check) && writes_done)? 1'b1 : 1'b0;
 	assign Trans_done   = ((S_cur == Transfer) && writes_done)? 1'b1 : 1'b0;	
 	assign check_M02_state_flag	 =	Trigger_done;
@@ -187,8 +188,7 @@
 	  begin                                                                                                     
 	    if (M_AXI_ARESETN == 0 || init_txn_pulse == 1'b1)                                                                                 
 	      writes_done <= 1'b0;                                                                                  
-	                                                                                                            
-	    //The writes_done should be associated with a bready response                                           
+                                           
 	    //else if (M_AXI_BVALID && axi_bready && (write_burst_counter == {(C_NO_BURSTS_REQ-1){1}}) && axi_wlast)
 	    else if (M_AXI_BVALID && (write_burst_counter[C_NO_BURSTS_REQ]) && axi_bready && axi_wlast)                          
 	      writes_done <= 1'b1;                                                                                  
@@ -314,6 +314,20 @@
 	end    
 // <----------- Initialize Pulse-End----------------->
 
+// <----------- burst_write_active ----------------->
+	always @(posedge M_AXI_ACLK)                                                                              
+	  begin                                                                                                     
+	    if (M_AXI_ARESETN == 0 || init_txn_pulse == 1'b1)                                                                                 
+	      burst_write_active <= 1'b0;                                                                           
+	                                                                                                            
+	    //The burst_write_active is asserted when a write burst transaction is initiated                        
+	    else if (start_single_burst_write)                                                                      
+	      burst_write_active <= 1'b1;                                                                           
+	    else if (M_AXI_BVALID && axi_bready)                                                                    
+	      burst_write_active <= 0;                                                                              
+	  end 
+
+
 // <---------- Write Address Channel ---------------->
 	always @(posedge M_AXI_ACLK)                                   
 	begin                                                                
@@ -346,7 +360,7 @@
 		else if (~axi_awvalid && ~axi_wvalid && start_single_burst_write) 
 			axi_wvalid <= 1'b1;                                                            
 	    else if (wnext && axi_wlast)                                                    
-	      axi_wvalid <= 1'b0;                                                           
+	      axi_wvalid <= 1'b0;                                              
 	    else                                                                            
 	      axi_wvalid <= axi_wvalid;                                                     
 	  end    
@@ -388,6 +402,27 @@
 	      axi_wlast <= axi_wlast;                                                       
 	  end                                                         
 // <---------- Write DATA Last END---------------->   
+
+
+// <---------- write_Brust_counter----------------> 
+	  always @(posedge M_AXI_ACLK)                                                                              
+	  begin                                                                                                     
+	    if (M_AXI_ARESETN == 0 || init_txn_pulse == 1'b1 )                                                                                 
+	      begin                                                                                                 
+	        write_burst_counter <= 'b0;                                                                         
+	      end                                                                                                   
+	    else if (M_AXI_AWREADY && axi_awvalid)                                                                  
+	      begin                                                                                                 
+	        if (write_burst_counter[C_NO_BURSTS_REQ] == 1'b0)                                                   
+	          begin                                                                                             
+	            write_burst_counter <= write_burst_counter + 1'b1;                                              
+	            //write_burst_counter[C_NO_BURSTS_REQ] <= 1'b1;                                                 
+	          end                                                                                               
+	      end                                                                                                   
+	    else                                                                                                    
+	      write_burst_counter <= write_burst_counter;                                                           
+	  end  
+// <---------- write_Brust_counter end----------------> 
 
 // <---------- write_index (Brust Len counter)----------------> 
 	  always @(posedge M_AXI_ACLK)                                                      
@@ -450,14 +485,14 @@
 // <-----------------------FSM----------------------->
 	//Changing FSM state from State_next to State_current
 	always @(posedge M_AXI_ACLK)begin
-		if(!M_AXI_ARESETN)  S_cur <= Init;
+		if(M_AXI_ARESETN == 0)  S_cur <= Init;
 		else          		S_cur <= S_next;
 	end
 	//FSM
 	always @(*)begin
 		case(S_cur)
 			Init:begin
-				if (init_txn_pulse && axi_awvalid && M_AXI_AWREADY) S_next = Trigger;
+				if (init_txn_pulse) S_next = Trigger; // && axi_awvalid && M_AXI_AWREADY
 				else 				S_next = Init;
 			end
 			Trigger:begin
@@ -483,7 +518,16 @@
 			end                                                                   
 		else 
 			case (S_cur)
-				Trigger:  start_single_burst_write <= 1'b1; 
+				Trigger, Check, Transfer:  begin				
+	                if (~axi_awvalid && ~start_single_burst_write && ~burst_write_active)                       
+	                  begin                                                                                     
+	                    start_single_burst_write <= 1'b1;                                                       
+	                  end                                                                                       
+	                else                                                                                        
+	                  begin                                                                                     
+	                    start_single_burst_write <= 1'b0; //Negate to generate a pulse                          
+	                  end 
+				end
 				default:  start_single_burst_write <= 1'b0;
 			endcase                                          
 	end 	
@@ -671,9 +715,13 @@
 	    else if (M_AXI_BVALID && ~axi_bready)                               
 	      begin                                                             
 	        axi_bready <= 1'b1;                                             
-	      end                                                               
+	      end
+		else if (axi_wlast)
+		  begin
+	        axi_bready <= 1'b1;  			
+		  end                                                               
 	    // deassert after one clock cycle                                   
-	    else if (axi_bready)                                                
+	    else if (M_AXI_BVALID && axi_bready)                                                
 	      begin                                                             
 	        axi_bready <= 1'b0;                                             
 	      end                                                               
