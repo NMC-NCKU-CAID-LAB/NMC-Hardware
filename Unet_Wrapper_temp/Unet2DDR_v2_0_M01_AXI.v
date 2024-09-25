@@ -190,7 +190,7 @@
 	      writes_done <= 1'b0;                                                                                  
                                            
 	    //else if (M_AXI_BVALID && axi_bready && (write_burst_counter == {(C_NO_BURSTS_REQ-1){1}}) && axi_wlast)
-	    else if (M_AXI_BVALID && (write_burst_counter[C_NO_BURSTS_REQ]) && axi_bready && axi_wlast)                          
+	    else if (M_AXI_BVALID && (write_burst_counter[C_NO_BURSTS_REQ]) && axi_bready)                          
 	      writes_done <= 1'b1;                                                                                  
 	    else                                                                                                    
 	      writes_done <= writes_done;                                                                           
