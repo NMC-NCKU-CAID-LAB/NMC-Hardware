@@ -772,7 +772,7 @@
 	            // write controller                                                                             
 	            if (writes_done)                                                                                
 	              begin                                                                                         
-	                mst_exec_state <= INIT_READ;                                                              
+	                mst_exec_state <= INIT_COMPARE;                                                              
 	              end                                                                                           
 	            else                                                                                            
 	              begin                                                                                         
