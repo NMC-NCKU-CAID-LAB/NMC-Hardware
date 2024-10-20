@@ -52,65 +52,16 @@
 		parameter integer C_CWBP_DATA_WIDTH		= 32		
 	)
 	(
-		// Users to add ports here
+	// Ports of Unet 
+		input				UW_busy,
+		input				U_L0_Finish,
 
-		// User ports ends
-		// Do not modify the ports beyond this line
-
-
-		// Ports of Axi Master Bus Interface M00_AXI
-	// input wire  m00_axi_init_axi_txn,
-	// output wire  m00_axi_txn_done,
-	// output wire  m00_axi_error,
-		// input wire  m00_axi_aclk,
-		// input wire  m00_axi_aresetn,
-		// output wire [C_M00_AXI_ID_WIDTH-1 : 0] m00_axi_awid,
-		// output wire [C_M00_AXI_ADDR_WIDTH-1 : 0] m00_axi_awaddr,
-		// output wire [7 : 0] m00_axi_awlen,
-		// output wire [2 : 0] m00_axi_awsize,
-		// output wire [1 : 0] m00_axi_awburst,
-		// output wire  m00_axi_awlock,
-		// output wire [3 : 0] m00_axi_awcache,
-		// output wire [2 : 0] m00_axi_awprot,
-		// output wire [3 : 0] m00_axi_awqos,
-		// output wire [C_M00_AXI_AWUSER_WIDTH-1 : 0] m00_axi_awuser,
-		// output wire  m00_axi_awvalid,
-		// input wire  m00_axi_awready,
-		// output wire [C_M00_AXI_DATA_WIDTH-1 : 0] m00_axi_wdata,
-		// output wire [C_M00_AXI_DATA_WIDTH/8-1 : 0] m00_axi_wstrb,
-		// output wire  m00_axi_wlast,
-		// output wire [C_M00_AXI_WUSER_WIDTH-1 : 0] m00_axi_wuser,
-		// output wire  m00_axi_wvalid,
-		// input wire  m00_axi_wready,
-		// input wire [C_M00_AXI_ID_WIDTH-1 : 0] m00_axi_bid,
-		// input wire [1 : 0] m00_axi_bresp,
-		// input wire [C_M00_AXI_BUSER_WIDTH-1 : 0] m00_axi_buser,
-		// input wire  m00_axi_bvalid,
-		// output wire  m00_axi_bready,
-		// output wire [C_M00_AXI_ID_WIDTH-1 : 0] m00_axi_arid,
-		// output wire [C_M00_AXI_ADDR_WIDTH-1 : 0] m00_axi_araddr,
-		// output wire [7 : 0] m00_axi_arlen,
-		// output wire [2 : 0] m00_axi_arsize,
-		// output wire [1 : 0] m00_axi_arburst,
-		// output wire  m00_axi_arlock,
-		// output wire [3 : 0] m00_axi_arcache,
-		// output wire [2 : 0] m00_axi_arprot,
-		// output wire [3 : 0] m00_axi_arqos,
-		// output wire [C_M00_AXI_ARUSER_WIDTH-1 : 0] m00_axi_aruser,
-		// output wire  m00_axi_arvalid,
-		// input wire  m00_axi_arready,
-		// input wire [C_M00_AXI_ID_WIDTH-1 : 0] m00_axi_rid,
-		// input wire [C_M00_AXI_DATA_WIDTH-1 : 0] m00_axi_rdata,
-		// input wire [1 : 0] m00_axi_rresp,
-		// input wire  m00_axi_rlast,
-		// input wire [C_M00_AXI_RUSER_WIDTH-1 : 0] m00_axi_ruser,
-		// input wire  m00_axi_rvalid,
-		// output wire  m00_axi_rready,
-
-		// Ports of Axi Master Bus Interface M01_AXI
-	// input wire  m01_axi_init_axi_txn,
-	// output wire  m01_axi_txn_done,
-	// output wire  m01_axi_error,
+		output	wire		UW_ready,
+		output	wire		patch_num,
+	// Ports of Axi Master Bus Interface M01_AXI
+		// input wire  m01_axi_init_axi_txn,
+		// output wire  m01_axi_txn_done,
+		// output wire  m01_axi_error,
 		input wire  m01_axi_aclk,
 		input wire  m01_axi_aresetn,
 		output wire [C_M01_AXI_ID_WIDTH-1 : 0] m01_axi_awid,
@@ -156,10 +107,10 @@
 		input wire  m01_axi_rvalid,
 		output wire  m01_axi_rready,
 
-		// Ports of Axi Master Bus Interface M02_AXI
-	// input wire  m02_axi_init_axi_txn,
-	// output wire  m02_axi_txn_done,
-	// output wire  m02_axi_error,
+	// Ports of Axi Master Bus Interface M02_AXI
+		// input wire  m02_axi_init_axi_txn,
+		// output wire  m02_axi_txn_done,
+		// output wire  m02_axi_error,
 		input wire  m02_axi_aclk,
 		input wire  m02_axi_aresetn,
 		output wire [C_M02_AXI_ID_WIDTH-1 : 0] m02_axi_awid,
@@ -227,6 +178,10 @@
 	
 	wire [3:0] Way;
 	wire [C_CWBP_DATA_WIDTH -1 :0] Row_address;
+
+	wire		UW_busy;
+	wire		UW_finish;	
+	wire		UW_wait;
 	// Interal wire/reg end
 
 // Instantiation of Axi Bus Interface M00_AXI
@@ -449,7 +404,7 @@
 		.Transfer_Done(m01_start_flag)
 	);
 
-// Instantiation of CWBP_Decoder
+  // Instantiation of CWBP_Decoder
 	CWBP_Decoder #(
     	.C_DATA_WIDTH(C_CWBP_DATA_WIDTH)
 	) CWBP_Decoder_inst(
@@ -457,6 +412,11 @@
 		.Way(Way),
 		.Row_address(Row_address)
 	);
+  
+  // Patch counter   
+  // output ready signal
+	assign	UW_wait		=	~UW_busy;
+	assign	UW_ready	=	(patch_num == 0) ? UW_finish : (UW_finish & UW_wait);
 
 	// User logic ends
 
