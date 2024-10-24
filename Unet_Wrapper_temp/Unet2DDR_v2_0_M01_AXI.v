@@ -298,9 +298,9 @@
 		if (!M_AXI_ARESETN || init_txn_pulse )   count <= 3'b0;   
 		else            
 			case (S_cur)
-				Trigger:	count <= (Trigger_done)? 3'd0 : count + 1;
-				Check:		count <= (Check_done)  ? 3'd0 : count + 1;
-				Transfer:   count <= (Trans_done)  ? 3'd0 : count + 1;
+				Trigger:	count <= (Trigger_done)? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
+				Check:		count <= (Check_done)  ? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
+				Transfer:   count <= (Trans_done)  ? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
 				default: 	count <= count;
 			endcase
 		end
@@ -670,6 +670,9 @@
 					axi_wdata    <= 32'h0000_0000;							
 			end		
 		end
+		STATUS_3: begin
+			axi_wdata    <= 32'h0000_0001;			
+		end			
 		default:begin
 		//axi_awaddr   <= 32'b0;
 		axi_wdata    <= 32'b0;
