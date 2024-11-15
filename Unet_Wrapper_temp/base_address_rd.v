@@ -34,7 +34,7 @@ always @(posedge clk or negedge rst_n) begin
         counter <= 1'b0;    
     end 
     else begin
-      if (counter) begin
+      if (counter == 1'b1) begin
         counter <= counter;        
       end
       else begin
@@ -51,7 +51,7 @@ always @(posedge clk or negedge rst_n) begin
         if(counter == 0)
             ram_addr    <= START_ADDR;
         else
-            ram_addr    <= 32'd0;
+            ram_addr    <= ram_addr;
     end
 end
 
