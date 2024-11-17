@@ -164,7 +164,8 @@
 
 // <-------------internal_signals------------------>
 	//user add
-	wire [C_M_AXI_ADDR_WIDTH-1 : 0] 	Targert_addr;
+	reg [C_M_AXI_ADDR_WIDTH-1 : 0] 	  Targert_addr;
+	
 	reg [C_M_AXI_ADDR_WIDTH-1 : 0] 		target_count;		
 	//
 	reg [C_M_AXI_ADDR_WIDTH-1 : 0] 		axi_awaddr;
@@ -206,13 +207,11 @@
 	reg  	init_txn_edge;
 	wire  	init_txn_pulse;
 
-    reg		comp_report;
+  reg		comp_report;
 
 
 // <----------- I/O Connection---------------------->
 	//user 
-	assign Targert_addr	= C_M_BRAM_BASE_ADDR + target_count;
-
 	assign M_AXI_AWID	= 'b0;
 	assign M_AXI_AWADDR	= axi_awaddr;
 	
@@ -359,7 +358,6 @@
 			// end
 			// if(Transfer_comp_report == 32'hFF_A501)
 			//	  	
-
 			default:begin       									//transfer
 				if(Trans_done && !mp_done)			S_next = Init;   // && Data_done
 				else if(Trans_done && mp_done)	S_next = Trigger;    //  && !Data_done 
@@ -413,6 +411,17 @@
 			3'd7:	flash_Way	= 12'h111;
 			default:	flash_Way	= 12'h000;
 		endcase
+	end
+
+//----------------- Targert_addr ----------------------//
+	always @(*) begin
+		if (conditions) begin
+			Targert_addr	=	C_M_BRAM_BASE_ADDR + MT_info_offset;
+		end 
+		else begin
+			// use unet 0 FSM to Control
+			Targert_addr	=	C_M_BRAM_BASE_ADDR;
+		end
 	end
 
 //WRITE
@@ -530,8 +539,15 @@
 			endcase			
 		end
 		STATUS_1: begin
-			axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
-			axi_wdata    = 32'h0000_0001;			
+			if (count == 3'd0) begin
+				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
+				axi_wdata    = 32'h0000_0001;						
+			end 
+			else begin
+				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b0}};
+				axi_wdata    = 32'h0000_0000;						
+			end
+
 		end
 		Check:begin
 		 // if (axi_wvalid && M_AXI_WREADY) begin
@@ -565,11 +581,17 @@
 			end
 		end
 		STATUS_2: begin
+			if (count == 3'd0) begin
 				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
-				axi_wdata    = 32'h0000_0001;			
+				axi_wdata    = 32'h0000_0001;						
+			end 
+			else begin
+				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b0}};
+				axi_wdata    = 32'h0000_0000;						
+			end			
 		end
 		Transfer:begin
-		//	if (axi_wvalid && M_AXI_WREADY) begin
+		 //	if (axi_wvalid && M_AXI_WREADY) begin
 			axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
 			case (count)
 				3'd0: begin             //write opcode into nsc_base_address + SP_register_offset
@@ -590,7 +612,7 @@
 				axi_wdata    = Targert_addr;
 				end
 				3'd4: begin             //write spare data address (not store)into nsc_base_address + SP_register_offset + 16    //need check
-				axi_wdata    = 32'h500B_0000; 
+				axi_wdata    = 32'h500b_0000; 
 				end
 				3'd5: begin             //write ERR info address into nsc_base_address + SP_register_offset + 20     //need check
 				axi_wdata    = 32'h1700_0200 + 352 * C_M_FLASH_CHANNEL + 44 * Way;
@@ -968,8 +990,20 @@
 	// end
 	// end
 	
+//Finish Signal
+	always @(posedge M_AXI_ACLK) begin
+		if (!M_AXI_ARESETN) begin
+			UW_Finish	<=	1'b0;				
+		end 
+		else begin
+			if (S_cur	== FINISH) begin
+				UW_Finish	<=	1'b1;
+			end 
+			else begin
+				UW_Finish	<=	1'b0;				
+			end	
+		end
+	end
 
-//------------------------------ not use --------------------------------//
 
-
-    endmodule
+endmodule
