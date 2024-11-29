@@ -11,12 +11,12 @@ module base_address_rd #(
     output reg [31:0] ram_addr,
     //read
     output ram_en ,
-    input [31:0] ram_rd_data,
+    input  [31:0] ram_rd_data,
     //write(not use)
     output [3:0]  ram_we,
     output [31:0] ram_wd_data,
     //to m01_signal
-    output Transfer_Done
+    output wire Transfer_Done
     );
 
 assign ram_rst  = 1'b0;
@@ -26,22 +26,34 @@ assign ram_we   = 4'b0;
 assign ram_wd_data = 32'd0;
 
 
-reg counter;
-assign Transfer_Done    =   (counter) ? 1'b1 : 1'b0;
+reg         counter;
+reg [31:0]  reg_ram_rd_data;
+assign Transfer_Done = (reg_ram_rd_data == 32'h0005_0010) ? 1'b1 : 1'b0;//(counter && ((&ram_rd_data) != 0)) ? 1'b1 : 1'b0;
 
-always @(posedge clk or negedge rst_n) begin
-    if (!rst_n) begin
-        counter <= 1'b0;    
-    end 
-    else begin
-      if (counter == 1'b1) begin
-        counter <= counter;        
-      end
-      else begin
-        counter <= counter + 1'b1;
-      end
+//--------------------- rd data reg ---------------------//
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            reg_ram_rd_data <=  32'd0;
+        end 
+        else begin
+            reg_ram_rd_data <=  ram_rd_data;            
+        end
     end
-end
+
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            counter <= 1'b0;    
+        end 
+        else begin
+            if (counter == 1'b1) begin
+                counter <= counter;        
+            end
+            else if (reg_ram_rd_data == 32'h0005_0010) begin
+                counter <= counter + 1'b1;
+            end
+        end
+    end
 
 always @(posedge clk or negedge rst_n) begin
     if(!rst_n) begin

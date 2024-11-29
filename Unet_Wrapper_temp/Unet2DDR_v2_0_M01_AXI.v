@@ -33,7 +33,7 @@
 		input  	wire [3:0] 	Way,
 		input  	wire [C_M_AXI_DATA_WIDTH -1:0] Row_address,
 
-		output	wire		UW_Finish,
+		output	reg	  UW_Finish,
 
 	  // User ports ends
 	  // // Initiate AXI transactions
@@ -157,14 +157,17 @@
 // <--------------local_parameter------------------>
     //parameter for offset
     parameter [15:0] ID_register_offset = 16'h0000; 
-    parameter [15:0] SP_register_offset = 16'h3000;
-    parameter [15:0] CC_register_offset = 16'h4000; 
-    parameter [31:0] statusreport_reg   = 32'h1234_5678;
+    parameter [15:0] SP_register_offset = 16'h4000;
+    parameter [15:0] CC_register_offset = 16'h3000; 
+    parameter [31:0] statusreport_reg   = 32'h0000_0000;
+
+	parameter [19:0] MT_info_offset 	= 20'hA_0000;
 // <-------local_parameter_End---------------------->
 
 // <-------------internal_signals------------------>
 	//user add
-	wire [C_M_AXI_ADDR_WIDTH-1 : 0] 	Targert_addr;
+	wire [C_M_AXI_ADDR_WIDTH-1 : 0] 	  Targert_addr;
+	
 	reg [C_M_AXI_ADDR_WIDTH-1 : 0] 		target_count;		
 	//
 	reg [C_M_AXI_ADDR_WIDTH-1 : 0] 		axi_awaddr;
@@ -206,13 +209,11 @@
 	reg  	init_txn_edge;
 	wire  	init_txn_pulse;
 
-    reg		comp_report;
+  	reg		[C_M_AXI_ADDR_WIDTH-1 : 0] comp_report;
 
 
 // <----------- I/O Connection---------------------->
 	//user 
-	assign Targert_addr	= C_M_BRAM_BASE_ADDR + target_count;
-
 	assign M_AXI_AWID	= 'b0;
 	assign M_AXI_AWADDR	= axi_awaddr;
 	
@@ -276,8 +277,8 @@
 	wire Check_R_done;
 
 	assign Trigger_done = ((S_cur == Trigger || S_cur == STATUS_1) && change_state)? 1'b1 : 1'b0;
-	assign Check_done   = ((S_cur == Check || S_cur == CLEAR) && change_state)? 1'b1 : 1'b0;
-	assign Check_R_done = ((S_cur == STATUS_2) && axi_rready && M_AXI_RVALID)? 1'b1 : 1'b0;
+	assign Check_done   = ((S_cur == Check || S_cur == CLEAR || S_cur == STATUS_2) && change_state)? 1'b1 : 1'b0;
+	assign Check_R_done = ((S_cur == STATUS_2) && axi_rready && M_AXI_RVALID && M_AXI_RLAST)? 1'b1 : 1'b0;
 	assign Trans_done   = ((S_cur == Transfer || S_cur == STATUS_3) && change_state)? 1'b1 : 1'b0;	
 	
 	assign change_state	= M_AXI_BVALID && axi_bready;
@@ -287,7 +288,7 @@
 	
 	always @(*) begin
 		if(S_cur == STATUS_2) begin
-			if (r_status_data[8:6] == 3'b111 && r_status_data[3:1] == 3'b111)
+			if (r_status_data[7:5] == 2'b11)
 				trigger_error	=	1'b0;
 			else
 				trigger_error	=	1'b1;
@@ -310,21 +311,31 @@
 	      writes_done <= writes_done;                                                                           
 	end  
 
+// <------------------- UW reset --------------------->
+	reg	UW_reset;
+	always @(posedge M_AXI_ACLK)begin
+		if(M_AXI_ARESETN == 0) 			  UW_reset <= 1;
+		else if (init_txn_pulse == 1'b1)  UW_reset <= 0;
+		else          					  UW_reset <= UW_reset;
+	end	
+
 // <-----------------------FSM----------------------->
 	//Changing FSM state from State_next to State_current
 	always @(posedge M_AXI_ACLK)begin
-		if(M_AXI_ARESETN == 0)  S_cur <= Init;
-		else          		S_cur <= S_next;
+		if(UW_reset) 				  S_cur <= Init;
+		//else if (init_txn_pulse == 1'b1)  S_cur <= Init;
+		else          					  S_cur <= S_next;
 	end
 	//FSM
 	always @(*)begin
 		case(S_cur)
 			Init: begin
-				if (init_txn_pulse) S_next = Trigger; // && axi_awvalid && M_AXI_AWREADY
-				else 				S_next = Init;
+				// if (init_txn_pulse) S_next = Trigger; // && axi_awvalid && M_AXI_AWREADY
+				// else 				S_next = Init;
+				S_next = Trigger;
 			end
 			Trigger: begin
-				if(Trigger_done)  	S_next = STATUS_1;
+				if(Trigger_done)  	S_next = STATUS_1;      
 				else              	S_next = Trigger;
 			end
 			STATUS_1: begin
@@ -342,24 +353,27 @@
 				else				 S_next = CLEAR;				
 			end
 			STATUS_2: begin
+				// if (Check_done)		S_next = Transfer;
+				// else 				S_next = STATUS_2;  
+
+			  if(r_status_data[0]) begin			
 				if (Check_R_done && ~trigger_error) 	 S_next = Transfer; // && axi_awvalid && M_AXI_AWREADY
-				else if (Check_R_done && trigger_error)  S_next = Trigger;
-				//*/								
-				else 				S_next = STATUS_2;					
+				else if (Check_R_done && trigger_error)  S_next = Trigger;	
+			  end					
+			  else				S_next = STATUS_2;					
 			end
 			Transfer: begin
 				if (Trans_done) 	S_next = STATUS_3; // && axi_awvalid && M_AXI_AWREADY
 				else 				S_next = Transfer;									
 			end
-			// STATUS_3: begin
-			// 	if 		(Success)		S_next = FINISH;
-			// 	else if (Err_not)		S_next = Transfer;
-			// 	else if (Transfer_not)  S_next = Trigger;
-			// 	else					S_next = STATUS_3;
-			// end
+			STATUS_3: begin
+				if 		(comp_report[0])		S_next = FINISH;
+				// else if (Err_not)		S_next = Transfer;
+				// else if (Transfer_not)  S_next = Trigger;
+				else					S_next = STATUS_3;
+			end
 			// if(Transfer_comp_report == 32'hFF_A501)
-			//	  	
-
+			FINISH: 	S_next = FINISH;				  	
 			default:begin       									//transfer
 				if(Trans_done && !mp_done)			S_next = Init;   // && Data_done
 				else if(Trans_done && mp_done)	S_next = Trigger;    //  && !Data_done 
@@ -374,12 +388,23 @@
 		if (!M_AXI_ARESETN || init_txn_pulse )   count <= 3'b0;   
 		else            
 			case (S_cur)
-				Trigger:	count <= (Trigger_done)? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
-				Check:		count <= (Check_done)  ? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
-				STATUS_2:	count <= (Check_R_done)  ? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
-				Transfer:   count <= (Trans_done)  ? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
-				STATUS_3:   count <= (Trans_done)  ? 3'd0 : (M_AXI_RVALID && axi_rready) ? count + 1 : count;
-				default: 	count <= count;
+				Trigger:		count <= (Trigger_done)? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
+				STATUS_1:		count <= (Trigger_done)  ? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;				
+				Check, CLEAR:		count <= (Check_done)  ? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;				
+				STATUS_2:		begin
+					if(Check_done || Check_R_done)	
+						count	<=	3'd0;
+					else if	(axi_wvalid && M_AXI_WREADY) 
+						count	<=	count + 1;
+					else if	(M_AXI_RVALID && axi_rready) 
+						count	<=	count + 1;
+					else	
+						count	<=	count;					
+				end
+				//count <= (Check_R_done)  ? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
+				Transfer:   	count <= (Trans_done)  ? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
+				STATUS_3:   	count <= (Trans_done)  ? 3'd0 : (M_AXI_RVALID && axi_rready) ? count + 1 : count;
+				default: 		count <= count;  
 			endcase
 		end
 
@@ -415,7 +440,33 @@
 		endcase
 	end
 
+// < -------------- Targert_addr ----------------------//
+	assign	Targert_addr	=	32'h1700_3000;//C_M_BRAM_BASE_ADDR + MT_info_offset;
+	// always @(*) begin
+	// 	if () begin
+	// 		Targert_addr	=	C_M_BRAM_BASE_ADDR + MT_info_offset;
+	// 	end 
+	// 	else begin
+	// 		// use unet 0 FSM to Control
+	// 		Targert_addr	=	C_M_BRAM_BASE_ADDR;
+	// 	end
+	// end
+
 //WRITE
+	reg  Write_flag;
+
+	always @(posedge M_AXI_ACLK) begin
+		if (M_AXI_ARESETN == 1'b0 ) begin
+			Write_flag <= 1'b0;  
+		end 
+		else begin
+			if((S_cur == STATUS_2))
+				Write_flag <= (Check_done) ? 1'b1 : Write_flag;
+			else
+				Write_flag <= 1'b0;				
+		end
+	end
+
 // <---------start_single_burst_write---------------->
 	always @ ( posedge M_AXI_ACLK) begin          
 		if (M_AXI_ARESETN == 1'b0 ) 
@@ -433,6 +484,16 @@
 	                  begin                                                                                     
 	                    start_single_burst_write <= 1'b0; //Negate to generate a pulse                          
 	                  end 
+				end
+				STATUS_2: begin
+	                if (~axi_awvalid && ~start_single_burst_write && ~burst_write_active && ~Write_flag)                       
+	                  begin                                                                                     
+	                    start_single_burst_write <= 1'b1;                                                       
+	                  end                                                                                       
+	                else                                                                                        
+	                  begin                                                                                     
+	                    start_single_burst_write <= 1'b0; //Negate to generate a pulse                          
+	                  end 					
 				end
 				default:  start_single_burst_write <= 1'b0;
 			endcase                                          
@@ -513,6 +574,7 @@
 	always @(*) begin
 	  case(S_cur)
 		Trigger: begin
+				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
 			case (count)
 				3'd0: begin             //write opcode into nsc_base_address + SP_register_offset
 				axi_wdata    = 32'h0000_01A4;
@@ -524,14 +586,21 @@
 				axi_wdata    = Row_address;
 				end
 				default: begin           //otherwise
-
+				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b0}};
 				axi_wdata    = 32'h0000_0000;
 				end
 			endcase			
 		end
 		STATUS_1: begin
-			axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
-			axi_wdata    = 32'h0000_0001;			
+			if (count == 3'd0) begin
+				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
+				axi_wdata    = 32'h0000_0001;						
+			end 
+			else begin
+				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b0}};
+				axi_wdata    = 32'h0000_0000;						
+			end
+
 		end
 		Check:begin
 		 // if (axi_wvalid && M_AXI_WREADY) begin
@@ -565,11 +634,17 @@
 			end
 		end
 		STATUS_2: begin
+			if (count == 3'd0) begin
 				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
-				axi_wdata    = 32'h0000_0001;			
+				axi_wdata    = 32'h0000_0001;						
+			end 
+			else begin
+				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b0}};
+				axi_wdata    = 32'h0000_0000;						
+			end			
 		end
 		Transfer:begin
-		//	if (axi_wvalid && M_AXI_WREADY) begin
+		 //	if (axi_wvalid && M_AXI_WREADY) begin
 			axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
 			case (count)
 				3'd0: begin             //write opcode into nsc_base_address + SP_register_offset
@@ -590,7 +665,7 @@
 				axi_wdata    = Targert_addr;
 				end
 				3'd4: begin             //write spare data address (not store)into nsc_base_address + SP_register_offset + 16    //need check
-				axi_wdata    = 32'h500B_0000; 
+				axi_wdata    = 32'h500b_0000; 
 				end
 				3'd5: begin             //write ERR info address into nsc_base_address + SP_register_offset + 20     //need check
 				axi_wdata    = 32'h1700_0200 + 352 * C_M_FLASH_CHANNEL + 44 * Way;
@@ -806,15 +881,17 @@
 			end                                                                   
 		else 
 			case (S_cur)
-				STATUS_2, Transfer, STATUS_3:  begin				
-	                if (~axi_arvalid && ~start_single_burst_read && ~burst_read_active)                       
-	                  begin                                                                                     
-	                    start_single_burst_read <= 1'b1;                                                       
-	                  end                                                                                       
-	                else                                                                                        
-	                  begin                                                                                     
+				STATUS_3:  begin				
+	                if (~axi_arvalid && ~start_single_burst_read && ~burst_read_active)                                                                                                        
+	                    start_single_burst_read <= 1'b1;                                                                                                                                            
+	                else                                                                                                                                                                         
 	                    start_single_burst_read <= 1'b0; //Negate to generate a pulse                          
-	                  end 
+				end
+				STATUS_2: begin
+	                if (~axi_arvalid && (~M_AXI_RVALID) && ~start_single_burst_read && ~burst_read_active && Write_flag)                                                                                                        
+	                    start_single_burst_read <= 1'b1;                                                                                                                                            
+	                else                                                                                                                                                                         
+	                    start_single_burst_read <= 1'b0; //Negate to generate a pulse     					
 				end
 				default:  start_single_burst_read <= 1'b0;
 			endcase                                          
@@ -843,7 +920,7 @@
 		begin                                                          
 			axi_arvalid <= 1'b1;                                         
 		end                                                            
-		else if (M_AXI_ARREADY && axi_arvalid)//M_AXI_ARREADY &&                           
+		else if (M_AXI_ARREADY && axi_arvalid && ~M_AXI_RLAST)//M_AXI_ARREADY &&                           
 		begin                                                          
 			axi_arvalid <= 1'b0;                                         
 		end                                                            
@@ -892,7 +969,7 @@
 		r_status_data	<=	32'h0;
 	  end 
 	  else begin
-		if(Check_R_done) 
+		if((S_cur == STATUS_2) && (M_AXI_RVALID && axi_rready) && (count == 0)) 
 			r_status_data	<=	M_AXI_RDATA;
 		else
 			r_status_data	<=	r_status_data;
@@ -904,9 +981,9 @@
 	always @(posedge M_AXI_ACLK) begin
 	  if (M_AXI_ARESETN == 0 || init_txn_pulse == 1'b1) begin
 		error_info	<=	32'h0;
-	  end 
+	  end    
 	  else begin
-		if(S_cur == STATUS_3 &&  Check_R_done && count == 0) 
+		if(S_cur == STATUS_3 &&  (M_AXI_RVALID && axi_rready) && count == 0) 
 			error_info	<=	M_AXI_RDATA;
 		else
 			error_info	<=	error_info;
@@ -918,10 +995,10 @@
       	comp_report	<=	32'h0;
       else begin 
 		//status_3_CNT
-      	if(S_cur == STATUS_3 &&  Check_R_done && count == 1)
+      	if(S_cur == STATUS_3 &&  (M_AXI_RVALID && axi_rready) && count == 1)
       	  comp_report	<=	M_AXI_RDATA;
 		else
-		  comp_report	<=	error_info;
+		  comp_report	<=	comp_report;
       end	
 	end
 
@@ -968,8 +1045,20 @@
 	// end
 	// end
 	
+//Finish Signal
+	always @(posedge M_AXI_ACLK) begin
+		if (!M_AXI_ARESETN) begin
+			UW_Finish	<=	1'b0;				
+		end 
+		else begin
+			if (S_cur	== FINISH) begin
+				UW_Finish	<=	1'b1;
+			end 
+			else begin
+				UW_Finish	<=	1'b0;				
+			end	
+		end
+	end
 
-//------------------------------ not use --------------------------------//
 
-
-    endmodule
+endmodule
