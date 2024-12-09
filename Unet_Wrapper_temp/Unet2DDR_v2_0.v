@@ -57,6 +57,8 @@
 		input				U_L0_Finish,
 
 		output	wire		UW_ready,
+		output	wire		UW_module_Finish, // Water S
+		output  wire		UW_Busy_for_WS,   // Water S
 		output	wire		patch_num,
 	// Ports of Axi Master Bus Interface M01_AXI
 		// input wire  m01_axi_init_axi_txn,
@@ -182,6 +184,9 @@
 	wire		UW_busy;
 	wire		UW_finish;	
 	wire		UW_wait;
+	//for Water S
+	wire 			m01_UW_Finish;
+	reg 	[1:0]	UW_count;
 	// Interal wire/reg end
 
 // Instantiation of Axi Bus Interface M00_AXI
@@ -270,9 +275,11 @@
 
 		.Way(Way),
 		.Row_address(Row_address),
+		
+		// .UW_Finish(m01_UW_Finish),
+		.UW_Busy  (UW_Busy_for_WS),
 		// User ports ends
 		.INIT_AXI_TXN(m01_start_flag),
-
 		// .TXN_DONE(m01_axi_txn_done),
 		// .ERROR(m01_axi_error),
 		.M_AXI_ACLK(m01_axi_aclk),
@@ -415,9 +422,22 @@
   
   // Patch counter   
   // output ready signal
-	assign	UW_wait		=	~UW_busy;
-	assign	UW_ready	=	(patch_num == 0) ? UW_finish : (UW_finish & UW_wait);
+	//assign	UW_wait		=	~UW_busy;
+	//assign	UW_ready	=	(patch_num == 0) ? UW_finish : (UW_finish & UW_wait);
 
+	always @(posedge m01_axi_aclk) begin
+		if (!m01_axi_aresetn) begin
+			UW_count	<=	2'b0;
+		end 
+		else begin
+			if(m01_UW_Finish)
+				UW_count	<=	2'b0;	
+			else	
+				UW_count	<=	UW_count;			
+		end
+	end
+
+	assign	UW_module_Finish	=	(UW_count == 2'd2) ? 1'b1 : 1'b0;
 	// User logic ends
 
 // //  Mapping_Table_info_buffer
