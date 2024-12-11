@@ -270,11 +270,12 @@
 					WAIT_1   	= 4'b1000,					
 					Transfer 	= 4'b1001,
 
-					WAIT_Counter_2 = 4'b1100, 
-					STATUS_3 	= 4'b1010,
-					STATUS_3_2 	= 4'b1011,
-					WAIT   	 	= 4'b1101,
-					FINISH   	= 4'b1110;
+					TRANSFER_CR = 4'b1010,
+					WAIT_Counter_2 = 4'b1011, 
+					STATUS_3 	= 4'b1100,
+					STATUS_3_2 	= 4'b1101,
+					WAIT   	 	= 4'b1110,
+					FINISH   	= 4'b1111;
 
 //<---------------Control Signal------------------->
 	wire addr_done;
@@ -295,7 +296,7 @@
 	
 	assign Trigger_done = ((S_cur == Trigger || S_cur == STATUS_1) && W_done)? 1'b1 : 1'b0;
 	assign Check_done   = ((S_cur == Check || S_cur == CLEAR || S_cur == STATUS_2) && W_done)? 1'b1 : 1'b0;
-	assign Trans_done   = ((S_cur == Transfer) && W_done)? 1'b1 : 1'b0;	
+	assign Trans_done   = ((S_cur == Transfer || S_cur == TRANSFER_CR) && W_done)? 1'b1 : 1'b0;	
 	assign Check_R_done = ((S_cur == WAIT_READ || S_cur == STATUS_3 || S_cur == STATUS_3_2) && R_done)? 1'b1 : 1'b0;
 	
 	reg  trigger_error;
@@ -411,8 +412,12 @@ end
 			//   else				S_next = STATUS_2;					
 			//end
 			Transfer: begin
-				if (Trans_done) 	S_next = WAIT_Counter_2; // && axi_awvalid && M_AXI_AWREADY
+				if (Trans_done) 	S_next = TRANSFER_CR; // && axi_awvalid && M_AXI_AWREADY
 				else 				S_next = Transfer;									
+			end
+			TRANSFER_CR: begin
+				if (Trans_done) 	S_next = WAIT_Counter_2; // && axi_awvalid && M_AXI_AWREADY
+				else 				S_next = TRANSFER_CR;						
 			end
 			WAIT_Counter_2: begin
 				if(wait_read_count == 7'd100)	S_next	=	STATUS_3;
@@ -474,6 +479,7 @@ end
 			    WAIT_READ:      count <= (Check_R_done)  ? 3'd0 : (M_AXI_RVALID && axi_rready) ? count + 1 : count;
 				//count <= (Check_R_done)  ? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
 				Transfer:   	count <= (Trans_done)  ? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
+				TRANSFER_CR:	count <= (Trans_done)  ? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
 				STATUS_3:   	count <= (Check_R_done)  ? 3'd0 : (M_AXI_RVALID && axi_rready) ? count + 1 : count;
 				STATUS_3_2:   	count <= (Check_R_done)  ? 3'd0 : (M_AXI_RVALID && axi_rready) ? count + 1 : count;
 				default: 		count <= count;  
@@ -497,23 +503,24 @@ end
 	end    
 
 // < ----------Block List Decoder Transfer----------->
-	reg [11:0] flash_Way;
+	reg [7:0] flash_Way;
 	always @(*) begin
 		case (Way)
-			3'd0:	flash_Way	= 12'h000;	
-			3'd1:	flash_Way	= 12'h001;
-			3'd2:	flash_Way	= 12'h010;
-			3'd3:	flash_Way	= 12'h011;
-			3'd4:	flash_Way	= 12'h100;
-			3'd5:	flash_Way	= 12'h101;
-			3'd6:	flash_Way	= 12'h110;
-			3'd7:	flash_Way	= 12'h111;
-			default:	flash_Way	= 12'h000;
+			3'd0:		flash_Way	= 8'b00000001;	
+			3'd1:		flash_Way	= 8'b00000010;
+			3'd2:		flash_Way	= 8'b00000100;
+			3'd3:		flash_Way	= 8'b00001000;
+			3'd4:		flash_Way	= 8'b00010000;
+			3'd5:		flash_Way	= 8'b00100000;
+			3'd6:		flash_Way	= 8'b01000000;
+			3'd7:		flash_Way	= 8'b10000000;
+			default:	flash_Way	= 8'b0;
 		endcase
 	end
 
 // < -------------- Targert_addr ----------------------//
-	assign	Targert_addr	=	32'h5005_4000;//C_M_BRAM_BASE_ADDR + MT_info_offset;
+	//assign	Targert_addr	=	32'h5005_4000;//C_M_BRAM_BASE_ADDR + MT_info_offset;
+	assign	Targert_addr	=	32'h3000_0000;
 	// always @(*) begin
 	// 	if () begin
 	// 		Targert_addr	=	C_M_BRAM_BASE_ADDR + MT_info_offset;
@@ -523,6 +530,7 @@ end
 	// 		Targert_addr	=	C_M_BRAM_BASE_ADDR;
 	// 	end
 	// end
+
 
 //WRITE
 	reg  Write_flag;
@@ -547,7 +555,7 @@ end
 			end                                                                   
 		else 
 			case (S_cur)
-				Trigger, STATUS_1, Check, CLEAR,STATUS_2, Transfer:  begin				
+				Trigger, STATUS_1, Check, CLEAR,STATUS_2, Transfer, TRANSFER_CR:  begin				
 	                if (~axi_awvalid && ~start_single_burst_write && ~burst_write_active)                       
 	                  begin                                                                                     
 	                    start_single_burst_write <= 1'b1;                                                       
@@ -624,8 +632,11 @@ end
 			Check:		axi_awaddr <= C_M_TARGET_SLAVE_BASE_ADDR + SP_register_offset;   
 			CLEAR:		axi_awaddr <= 32'h1700_0100 + 32 * C_M_FLASH_CHANNEL + Way;  	
 			STATUS_2:   axi_awaddr <= C_M_TARGET_SLAVE_BASE_ADDR + CC_register_offset;  
-			Transfer: 	axi_awaddr <= C_M_TARGET_SLAVE_BASE_ADDR + SP_register_offset;  
-			//STATUS_3: 	axi_awaddr <= C_M_TARGET_SLAVE_BASE_ADDR + CC_register_offset;  
+
+
+			Transfer: 	axi_awaddr <= C_M_TARGET_SLAVE_BASE_ADDR + SP_register_offset;
+			TRANSFER_CR:axi_awaddr <= C_M_TARGET_SLAVE_BASE_ADDR + CC_register_offset;   
+
 			default: 	axi_awaddr <= 32'b0;   
 		  endcase          
 		end                                         
@@ -649,7 +660,7 @@ end
 				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
 			case (count)
 				3'd0: begin             //write opcode into nsc_base_address + SP_register_offset
-				axi_wdata    = 32'h0000_01A4;
+				axi_wdata    = 32'h0000_01C4;
 				end
 				3'd1: begin             //write way into nsc_base_address + SP_register_offset + 4
 				axi_wdata    = flash_Way;
@@ -754,6 +765,16 @@ end
 				end
 			endcase
 		//	end
+		end
+		TRANSFER_CR: begin
+			if (count == 3'd0) begin
+				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
+				axi_wdata    = 32'h0000_0001;						
+			end 
+			else begin
+				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b0}};
+				axi_wdata    = 32'h0000_0000;						
+			end			
 		end
 		default: begin
 			axi_wdata    = 32'h0000_0000;			
