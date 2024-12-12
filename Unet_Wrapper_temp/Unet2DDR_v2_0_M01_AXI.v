@@ -32,6 +32,7 @@
 
 		input  	wire [3:0] 	Way,
 		input  	wire [C_M_AXI_DATA_WIDTH -1:0] Row_address,
+		input	wire [7:0]	check_nfc_busy,
 
 		output	reg	  UW_Finish,
 		output  reg   UW_Busy,
@@ -257,30 +258,32 @@
 
 // <-------------------FSM------------------------->
   //parameter for FSM
-	parameter [3:0] Init     	= 4'b0000,
-					Trigger  	= 4'b0001,
-					STATUS_1 	= 4'b0010,
+	parameter [4:0] Init     		= 5'b00000,
+					Trigger  		= 5'b00001,
+					STATUS_1 		= 5'b00010,
+					WAIT_CHECK_BUSY	= 5'b10000,
+					NFC_BUSY    	= 5'b10001,
 
-					Check    	= 4'b0011,
-					CLEAR    	= 4'b0100,
-					STATUS_2 	= 4'b0101,
+					Check    		= 5'b00011,
+					CLEAR    		= 5'b00100,
+					STATUS_2 		= 5'b00101,
 
-					WAIT_Counter = 4'b0110,
-					WAIT_READ	= 4'b0111,
-					WAIT_1   	= 4'b1000,					
-					Transfer 	= 4'b1001,
+					WAIT_Counter 	= 5'b00110,
+					WAIT_READ		= 5'b00111,
+					WAIT_1   		= 5'b01000,					
+					Transfer 		= 5'b01001,
 
-					TRANSFER_CR = 4'b1010,
-					WAIT_Counter_2 = 4'b1011, 
-					STATUS_3 	= 4'b1100,
-					STATUS_3_2 	= 4'b1101,
-					WAIT   	 	= 4'b1110,
-					FINISH   	= 4'b1111;
+					TRANSFER_CR 	= 5'b01010,
+					WAIT_Counter_2 	= 5'b01011, 
+					STATUS_3 		= 5'b01100,
+					STATUS_3_2 		= 5'b01101,
+					WAIT   	 		= 5'b01110,
+					FINISH   		= 5'b01111;
 
 //<---------------Control Signal------------------->
 	wire addr_done;
 	reg [2:0] count;
-	reg [3:0] S_cur, S_next;
+	reg [4:0] S_cur, S_next;
 	reg [10:0] mp_counter;
 	
 	wire 	mp_done;  // revise times 
@@ -348,6 +351,7 @@
 
 always @(posedge M_AXI_ACLK)begin
 	if(UW_reset) 				  	wait_read_count	<=	1'b0;
+	else if(S_cur == WAIT_CHECK_BUSY)  wait_read_count	<=	wait_read_count + 1'b1;
 	else if(S_cur == WAIT_Counter)  wait_read_count	<=	wait_read_count + 1'b1;
 	else if(S_cur == WAIT_Counter_2) wait_read_count	<=	wait_read_count + 1'b1;
 	else          				  	wait_read_count	<=	1'b0;
@@ -373,8 +377,18 @@ end
 				else              	S_next = Trigger;
 			end
 			STATUS_1: begin
-				if (Trigger_done) 	S_next = Check; // && axi_awvalid && M_AXI_AWREADY
+				if (Trigger_done) 	S_next = WAIT_CHECK_BUSY; // && axi_awvalid && M_AXI_AWREADY
 				else 				S_next = STATUS_1;				
+			end
+			WAIT_CHECK_BUSY: begin
+				if(wait_read_count == 7'd100)	S_next	=	NFC_BUSY;
+				else							S_next	=	WAIT_CHECK_BUSY;				
+			end
+			NFC_BUSY: begin
+				if(&check_nfc_busy)
+					S_next = Check;
+				else
+					S_next = NFC_BUSY;
 			end
 			Check: begin
 				//if(Check_done && (count == 3'd3))    	S_next = STATUS_2;

@@ -55,6 +55,7 @@
 	// Ports of Unet 
 		input				UW_busy,
 		input				U_L0_Finish,
+		input	[7:0]		check_nfc_busy,
 
 		output	wire		UW_ready,
 		output	wire		UW_module_Finish, // Water S
@@ -271,6 +272,7 @@
 		.C_M_AXI_BUSER_WIDTH(C_M01_AXI_BUSER_WIDTH)
 	) Unet2DDR_v2_0_M01_AXI_inst (
 		// Users to add ports here
+		.check_nfc_busy(check_nfc_busy),
 		.check_M02_state_flag(m01_02_state_flag),
 
 		.Way(Way),
