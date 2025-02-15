@@ -3,11 +3,6 @@
 
 	module Unet_Wrapper_v1_0 #
 	(
-		// Users to add parameters here
-
-		// User parameters ends
-		// Do not modify the parameters beyond this line
-
 	  // Parameters of Axi Master Bus Interface UW_Channel0
 		parameter  C_UW_Channel0_FLASH_CHANNEL			= 3'd0,
 		parameter  C_UW_Channel0_TARGET_SLAVE_BASE_ADDR	= 32'h43C0_0000,
@@ -118,17 +113,35 @@
 		parameter integer C_UW_Channel7_ARUSER_WIDTH	= 0,
 		parameter integer C_UW_Channel7_WUSER_WIDTH		= 0,
 		parameter integer C_UW_Channel7_RUSER_WIDTH		= 0,
-		parameter integer C_UW_Channel7_BUSER_WIDTH		= 0
+		parameter integer C_UW_Channel7_BUSER_WIDTH		= 0,
+
+	  // Parameters of Axi Master Bus Interface Host_Data_Transfer
+		parameter  C_HOST_DATA_TRANSFER_TARGET_SLAVE_BASE_ADDR	= 32'h2FFFF_E008,
+		parameter integer C_HOST_DATA_TRANSFER_BURST_LEN		= 2, //only two signal
+		parameter integer C_HOST_DATA_TRANSFER_ID_WIDTH			= 1,
+		parameter integer C_HOST_DATA_TRANSFER_ADDR_WIDTH		= 32,
+		parameter integer C_HOST_DATA_TRANSFER_DATA_WIDTH		= 32,
+		parameter integer C_HOST_DATA_TRANSFER_AWUSER_WIDTH		= 0,
+		parameter integer C_HOST_DATA_TRANSFER_ARUSER_WIDTH		= 0,
+		parameter integer C_HOST_DATA_TRANSFER_WUSER_WIDTH		= 0,
+		parameter integer C_HOST_DATA_TRANSFER_RUSER_WIDTH		= 0,
+		parameter integer C_HOST_DATA_TRANSFER_BUSER_WIDTH		= 0,
+
+	  // Parameters of BRAM Bus Interface
+		parameter  BRAM_BASEADDRESS_START_ADDR	= 32'h4580_0000,
+
+	  // Parameters of CWBP_Decoder
+		parameter integer C_CWBP_DATA_WIDTH		= 32	
 	)
 	(
-		// Users to add ports here
+	  // Control signal
+	    //input			,
+		input			UW_Host_Data_Transfer_En, // From Watershed
+		output	wire	UW_Finish, 	
+		output  wire	UW_Busy,
+		input	[7:0]	NFC_Channel_Busy,
 
-		// User ports ends
-		// Do not modify the ports beyond this line
 	  // Ports of Axi Master Bus Interface UW_Channel0
-		input wire  uw_channel0_init_axi_txn,
-		output wire  uw_channel0_txn_done,
-		output wire  uw_channel0_error,
 		input wire  uw_channel0_aclk,
 		input wire  uw_channel0_aresetn,
 		output wire [C_UW_Channel0_ID_WIDTH-1 : 0] uw_channel0_awid,
@@ -175,9 +188,6 @@
 		output wire  uw_channel0_rready,
 
 	  // Ports of Axi Master Bus Interface UW_Channel1
-		input wire  uw_channel1_init_axi_txn,
-		output wire  uw_channel1_txn_done,
-		output wire  uw_channel1_error,
 		input wire  uw_channel1_aclk,
 		input wire  uw_channel1_aresetn,
 		output wire [C_UW_Channel1_ID_WIDTH-1 : 0] uw_channel1_awid,
@@ -224,9 +234,6 @@
 		output wire  uw_channel1_rready,
 
 	  // Ports of Axi Master Bus Interface UW_Channel2
-		input wire  uw_channel2_init_axi_txn,
-		output wire  uw_channel2_txn_done,
-		output wire  uw_channel2_error,
 		input wire  uw_channel2_aclk,
 		input wire  uw_channel2_aresetn,
 		output wire [C_UW_Channel2_ID_WIDTH-1 : 0] uw_channel2_awid,
@@ -273,9 +280,6 @@
 		output wire  uw_channel2_rready,
 
 	  // Ports of Axi Master Bus Interface UW_Channel3
-		input wire  uw_channel3_init_axi_txn,
-		output wire  uw_channel3_txn_done,
-		output wire  uw_channel3_error,
 		input wire  uw_channel3_aclk,
 		input wire  uw_channel3_aresetn,
 		output wire [C_UW_Channel3_ID_WIDTH-1 : 0] uw_channel3_awid,
@@ -322,9 +326,6 @@
 		output wire  uw_channel3_rready,
 
 	  // Ports of Axi Master Bus Interface UW_Channel4
-		input wire  uw_channel4_init_axi_txn,
-		output wire  uw_channel4_txn_done,
-		output wire  uw_channel4_error,
 		input wire  uw_channel4_aclk,
 		input wire  uw_channel4_aresetn,
 		output wire [C_UW_Channel4_ID_WIDTH-1 : 0] uw_channel4_awid,
@@ -371,9 +372,6 @@
 		output wire  uw_channel4_rready,
 
 	  // Ports of Axi Master Bus Interface UW_Channel5
-		input wire  uw_channel5_init_axi_txn,
-		output wire  uw_channel5_txn_done,
-		output wire  uw_channel5_error,
 		input wire  uw_channel5_aclk,
 		input wire  uw_channel5_aresetn,
 		output wire [C_UW_Channel5_ID_WIDTH-1 : 0] uw_channel5_awid,
@@ -420,9 +418,6 @@
 		output wire  uw_channel5_rready,
 
 	  // Ports of Axi Master Bus Interface UW_Channel6
-		input wire  uw_channel6_init_axi_txn,
-		output wire  uw_channel6_txn_done,
-		output wire  uw_channel6_error,
 		input wire  uw_channel6_aclk,
 		input wire  uw_channel6_aresetn,
 		output wire [C_UW_Channel6_ID_WIDTH-1 : 0] uw_channel6_awid,
@@ -469,9 +464,6 @@
 		output wire  uw_channel6_rready,
 
 	  // Ports of Axi Master Bus Interface UW_Channel7
-		input wire  uw_channel7_init_axi_txn,
-		output wire  uw_channel7_txn_done,
-		output wire  uw_channel7_error,
 		input wire  uw_channel7_aclk,
 		input wire  uw_channel7_aresetn,
 		output wire [C_UW_Channel7_ID_WIDTH-1 : 0] uw_channel7_awid,
@@ -515,8 +507,77 @@
 		input wire  uw_channel7_rlast,
 		input wire [C_UW_Channel7_RUSER_WIDTH-1 : 0] uw_channel7_ruser,
 		input wire  uw_channel7_rvalid,
-		output wire  uw_channel7_rready
+		output wire  uw_channel7_rready,
+
+	  //Ports of Axi Master Bus Interface Host_Data_Transfer M02_AXI 
+		input wire  m02_axi_aclk,
+		input wire  m02_axi_aresetn,
+		output wire [C_HOST_DATA_TRANSFER_ID_WIDTH-1 : 0] m02_axi_awid,
+		output wire [C_HOST_DATA_TRANSFER_ADDR_WIDTH-1 : 0] m02_axi_awaddr,
+		output wire [7 : 0] m02_axi_awlen,
+		output wire [2 : 0] m02_axi_awsize,
+		output wire [1 : 0] m02_axi_awburst,
+		output wire  m02_axi_awlock,
+		output wire [3 : 0] m02_axi_awcache,
+		output wire [2 : 0] m02_axi_awprot,
+		output wire [3 : 0] m02_axi_awqos,
+		output wire [C_HOST_DATA_TRANSFER_AWUSER_WIDTH-1 : 0] m02_axi_awuser,
+		output wire  m02_axi_awvalid,
+		input wire  m02_axi_awready,
+		output wire [C_HOST_DATA_TRANSFER_DATA_WIDTH-1 : 0] m02_axi_wdata,
+		output wire [C_HOST_DATA_TRANSFER_DATA_WIDTH/8-1 : 0] m02_axi_wstrb,
+		output wire  m02_axi_wlast,
+		output wire [C_HOST_DATA_TRANSFER_WUSER_WIDTH-1 : 0] m02_axi_wuser,
+		output wire  m02_axi_wvalid,
+		input wire  m02_axi_wready,
+		input wire [C_HOST_DATA_TRANSFER_ID_WIDTH-1 : 0] m02_axi_bid,
+		input wire [1 : 0] m02_axi_bresp,
+		input wire [C_HOST_DATA_TRANSFER_BUSER_WIDTH-1 : 0] m02_axi_buser,
+		input wire  m02_axi_bvalid,
+		output wire  m02_axi_bready,
+		output wire [C_HOST_DATA_TRANSFER_ID_WIDTH-1 : 0] m02_axi_arid,
+		output wire [C_HOST_DATA_TRANSFER_ADDR_WIDTH-1 : 0] m02_axi_araddr,
+		output wire [7 : 0] m02_axi_arlen,
+		output wire [2 : 0] m02_axi_arsize,
+		output wire [1 : 0] m02_axi_arburst,
+		output wire  m02_axi_arlock,
+		output wire [3 : 0] m02_axi_arcache,
+		output wire [2 : 0] m02_axi_arprot,
+		output wire [3 : 0] m02_axi_arqos,
+		output wire [C_HOST_DATA_TRANSFER_ARUSER_WIDTH-1 : 0] m02_axi_aruser,
+		output wire  m02_axi_arvalid,
+		input wire  m02_axi_arready,
+		input wire [C_HOST_DATA_TRANSFER_ID_WIDTH-1 : 0] m02_axi_rid,
+		input wire [C_HOST_DATA_TRANSFER_DATA_WIDTH-1 : 0] m02_axi_rdata,
+		input wire [1 : 0] m02_axi_rresp,
+		input wire  m02_axi_rlast,
+		input wire [C_HOST_DATA_TRANSFER_RUSER_WIDTH-1 : 0] m02_axi_ruser,
+		input wire  m02_axi_rvalid,
+		output wire  m02_axi_rready,
+
+	  //base_address
+		input 	wire 			base_address_rd_clk,
+		input 	wire 			base_address_rd_rst_n,
+		output 	wire 			ram_clk,
+		output 	wire 			ram_rst,
+		output 	wire [31:0]		ram_addr,
+		output 	wire 			ram_en,
+		input  	wire [31:0] 	ram_rd_data,
+		output	wire [3:0] 		ram_we,
+		output	wire [31:0] 	ram_wd_data
 	);
+// Sub-module Internal Setting
+  //Sub-module Connect
+	wire uw_channel0_init_axi_txn;   //m01_start_flag;
+	wire uw_channel1_init_axi_txn;	 // need to add
+	wire uw_channel2_init_axi_txn;
+	wire uw_channel3_init_axi_txn;
+	wire uw_channel4_init_axi_txn;
+	wire uw_channel5_init_axi_txn;
+	wire uw_channel6_init_axi_txn;
+	wire uw_channel7_init_axi_txn;
+	reg  [1:0]	UW_count;
+
 // Instantiation of Axi Bus Interface UW_Channel0
 	Unet_Wrapper_v1_0_UW_Channel0 # ( 
 		.C_M_FLASH_CHANNEL(C_UW_Channel0_FLASH_CHANNEL),
@@ -533,8 +594,6 @@
 		.C_M_AXI_BUSER_WIDTH(C_UW_Channel0_BUSER_WIDTH)
 	) Unet_Wrapper_v1_0_UW_Channel0_inst (
 		.INIT_AXI_TXN(uw_channel0_init_axi_txn),
-		.TXN_DONE(uw_channel0_txn_done),
-		.ERROR(uw_channel0_error),
 		.M_AXI_ACLK(uw_channel0_aclk),
 		.M_AXI_ARESETN(uw_channel0_aresetn),
 		.M_AXI_AWID(uw_channel0_awid),
@@ -597,8 +656,6 @@
 		.C_M_AXI_BUSER_WIDTH		(C_UW_Channel1_BUSER_WIDTH)
 	) Unet_Wrapper_v1_0_UW_Channel1_inst (
 		.INIT_AXI_TXN(uw_channel1_init_axi_txn),
-		.TXN_DONE(uw_channel1_txn_done),
-		.ERROR(uw_channel1_error),
 		.M_AXI_ACLK(uw_channel1_aclk),
 		.M_AXI_ARESETN(uw_channel1_aresetn),
 		.M_AXI_AWID(uw_channel1_awid),
@@ -661,8 +718,6 @@
 		.C_M_AXI_BUSER_WIDTH		(C_UW_Channel2_BUSER_WIDTH)
 	) Unet_Wrapper_v1_0_UW_Channel2_inst (
 		.INIT_AXI_TXN(uw_channel2_init_axi_txn),
-		.TXN_DONE(uw_channel2_txn_done),
-		.ERROR(uw_channel2_error),
 		.M_AXI_ACLK(uw_channel2_aclk),
 		.M_AXI_ARESETN(uw_channel2_aresetn),
 		.M_AXI_AWID(uw_channel2_awid),
@@ -725,8 +780,6 @@
 		.C_M_AXI_BUSER_WIDTH		(C_UW_Channel3_BUSER_WIDTH)
 	) Unet_Wrapper_v1_0_UW_Channel3_inst (
 		.INIT_AXI_TXN(uw_channel3_init_axi_txn),
-		.TXN_DONE(uw_channel3_txn_done),
-		.ERROR(uw_channel3_error),
 		.M_AXI_ACLK(uw_channel3_aclk),
 		.M_AXI_ARESETN(uw_channel3_aresetn),
 		.M_AXI_AWID(uw_channel3_awid),
@@ -789,8 +842,6 @@
 		.C_M_AXI_BUSER_WIDTH		(C_UW_Channel4_BUSER_WIDTH)
 	) Unet_Wrapper_v1_0_UW_Channel4_inst (
 		.INIT_AXI_TXN(uw_channel4_init_axi_txn),
-		.TXN_DONE(uw_channel4_txn_done),
-		.ERROR(uw_channel4_error),
 		.M_AXI_ACLK(uw_channel4_aclk),
 		.M_AXI_ARESETN(uw_channel4_aresetn),
 		.M_AXI_AWID(uw_channel4_awid),
@@ -853,8 +904,6 @@
 		.C_M_AXI_BUSER_WIDTH		(C_UW_Channel5_BUSER_WIDTH)
 	) Unet_Wrapper_v1_0_UW_Channel5_inst (
 		.INIT_AXI_TXN(uw_channel5_init_axi_txn),
-		.TXN_DONE(uw_channel5_txn_done),
-		.ERROR(uw_channel5_error),
 		.M_AXI_ACLK(uw_channel5_aclk),
 		.M_AXI_ARESETN(uw_channel5_aresetn),
 		.M_AXI_AWID(uw_channel5_awid),
@@ -917,8 +966,6 @@
 		.C_M_AXI_BUSER_WIDTH		(C_UW_Channel6_BUSER_WIDTH)
 	) Unet_Wrapper_v1_0_UW_Channel6_inst (
 		.INIT_AXI_TXN(uw_channel6_init_axi_txn),
-		.TXN_DONE(uw_channel6_txn_done),
-		.ERROR(uw_channel6_error),
 		.M_AXI_ACLK(uw_channel6_aclk),
 		.M_AXI_ARESETN(uw_channel6_aresetn),
 		.M_AXI_AWID(uw_channel6_awid),
@@ -981,8 +1028,6 @@
 		.C_M_AXI_BUSER_WIDTH		(C_UW_Channel7_BUSER_WIDTH)
 	) Unet_Wrapper_v1_0_UW_Channel7_inst (
 		.INIT_AXI_TXN(uw_channel7_init_axi_txn),
-		.TXN_DONE(uw_channel7_txn_done),
-		.ERROR(uw_channel7_error),
 		.M_AXI_ACLK(uw_channel7_aclk),
 		.M_AXI_ARESETN(uw_channel7_aresetn),
 		.M_AXI_AWID(uw_channel7_awid),
@@ -1029,8 +1074,113 @@
 		.M_AXI_RREADY(uw_channel7_rready)
 	);
 
-	// Add user logic here
+// Instantiation of Axi Bus Interface Host_Data_Transfer
+	Host_Data_Transfer # ( 
+		.C_M_TARGET_SLAVE_BASE_ADDR	(C_HOST_DATA_TRANSFER_TARGET_SLAVE_BASE_ADDR),
+		.C_M_AXI_BURST_LEN			(C_HOST_DATA_TRANSFER_BURST_LEN),
+		.C_M_AXI_ID_WIDTH			(C_HOST_DATA_TRANSFER_ID_WIDTH),
+		.C_M_AXI_ADDR_WIDTH			(C_HOST_DATA_TRANSFER_ADDR_WIDTH),
+		.C_M_AXI_DATA_WIDTH			(C_HOST_DATA_TRANSFER_DATA_WIDTH),
+		.C_M_AXI_AWUSER_WIDTH		(C_HOST_DATA_TRANSFER_AWUSER_WIDTH),
+		.C_M_AXI_ARUSER_WIDTH		(C_HOST_DATA_TRANSFER_ARUSER_WIDTH),
+		.C_M_AXI_WUSER_WIDTH		(C_HOST_DATA_TRANSFER_WUSER_WIDTH),
+		.C_M_AXI_RUSER_WIDTH		(C_HOST_DATA_TRANSFER_RUSER_WIDTH),
+		.C_M_AXI_BUSER_WIDTH		(C_HOST_DATA_TRANSFER_BUSER_WIDTH)
+	) Host_Data_Transfer_inst (
+	  //user port		
+		//.WS_ALL_Done(U_L0_Finish),
+	  // original	
+		.INIT_AXI_TXN	(UW_En),
+		.M_AXI_ACLK		(m02_axi_aclk),
+		.M_AXI_ARESETN	(m02_axi_aresetn),
+		.M_AXI_AWID		(m02_axi_awid),
+		.M_AXI_AWADDR	(m02_axi_awaddr),
+		.M_AXI_AWLEN	(m02_axi_awlen),
+		.M_AXI_AWSIZE	(m02_axi_awsize),
+		.M_AXI_AWBURST	(m02_axi_awburst),
+		.M_AXI_AWLOCK	(m02_axi_awlock),
+		.M_AXI_AWCACHE	(m02_axi_awcache),
+		.M_AXI_AWPROT	(m02_axi_awprot),
+		.M_AXI_AWQOS	(m02_axi_awqos),
+		.M_AXI_AWUSER	(m02_axi_awuser),
+		.M_AXI_AWVALID	(m02_axi_awvalid),
+		.M_AXI_AWREADY	(m02_axi_awready),
+		.M_AXI_WDATA	(m02_axi_wdata),
+		.M_AXI_WSTRB	(m02_axi_wstrb),
+		.M_AXI_WLAST	(m02_axi_wlast),
+		.M_AXI_WUSER	(m02_axi_wuser),
+		.M_AXI_WVALID	(m02_axi_wvalid),
+		.M_AXI_WREADY	(m02_axi_wready),
+		.M_AXI_BID	(m02_axi_bid),
+		.M_AXI_BRESP	(m02_axi_bresp),
+		.M_AXI_BUSER	(m02_axi_buser),
+		.M_AXI_BVALID	(m02_axi_bvalid),
+		.M_AXI_BREADY	(m02_axi_bready),
+		.M_AXI_ARID	(m02_axi_arid),
+		.M_AXI_ARADDR	(m02_axi_araddr),
+		.M_AXI_ARLEN	(m02_axi_arlen),
+		.M_AXI_ARSIZE	(m02_axi_arsize),
+		.M_AXI_ARBURST	(m02_axi_arburst),
+		.M_AXI_ARLOCK	(m02_axi_arlock),
+		.M_AXI_ARCACHE	(m02_axi_arcache),
+		.M_AXI_ARPROT(m02_axi_arprot),
+		.M_AXI_ARQOS(m02_axi_arqos),
+		.M_AXI_ARUSER(m02_axi_aruser),
+		.M_AXI_ARVALID(m02_axi_arvalid),
+		.M_AXI_ARREADY(m02_axi_arready),
+		.M_AXI_RID(m02_axi_rid),
+		.M_AXI_RDATA(m02_axi_rdata),
+		.M_AXI_RRESP(m02_axi_rresp),
+		.M_AXI_RLAST(m02_axi_rlast),
+		.M_AXI_RUSER(m02_axi_ruser),
+		.M_AXI_RVALID(m02_axi_rvalid),
+		.M_AXI_RREADY(m02_axi_rready)
+	);
 
-	// User logic ends
+// Instantiation of base_address_rd
+	base_address_rd #(
+		.START_ADDR	(BRAM_BASEADDRESS_START_ADDR)
+	)base_address_rd_inst(
+		.clk		(base_address_rd_clk),
+		.rst_n		(base_address_rd_rst_n),
+		//ram
+		.ram_clk	(ram_clk),
+		.ram_rst	(ram_rst),
+		//addr
+		.ram_addr	(ram_addr),
+		//read
+		.ram_en		(ram_en),
+		.ram_rd_data(ram_rd_data),
+		//write(not use)
+		.ram_we		(ram_we),
+		.ram_wd_data(ram_wd_data),
+		.Transfer_Done	(uw_channel0_init_axi_txn),
+		//user use
+		.change_based_address(w_change_based_address)
+		//.data_get(m01_start_flag)
+	);
 
-	endmodule
+// Instantiation of CWBP_Decoder
+	CWBP_Decoder #(
+    	.C_DATA_WIDTH	(C_CWBP_DATA_WIDTH)
+	) CWBP_Decoder_inst(
+		.mapping_pointer(ram_rd_data),
+		.Way			(Way),
+		.Row_address	(Row_address)
+	);
+
+// Control Signal 
+	always @(posedge m01_axi_aclk) begin
+		if (!m01_axi_aresetn) begin
+			UW_count	<=	2'b0;
+		end 
+		else begin
+			if(m01_UW_Finish)
+				UW_count	<=	UW_count;	
+			else if(uw_channel0_init_axi_txn)
+				UW_count	<=	UW_count + 1'b1;			
+		end
+	end
+
+	assign	UW_Finish	=	(UW_count == 2'd2) ? 1'b1 : 1'b0;
+endmodule

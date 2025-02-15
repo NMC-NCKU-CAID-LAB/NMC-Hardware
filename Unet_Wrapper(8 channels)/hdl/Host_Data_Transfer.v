@@ -1,78 +1,121 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 2025/02/01 17:01:52
+// Design Name: 
+// Module Name: Host_data_Trasfer
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
 
-`timescale 1 ns / 1 ps
+module Host_Data_Transfer #
+(
+    // Users to add parameters here
+    
+    // 0x2FFF_E008
+    // 0X2FFF_E00C
 
-	module Unet_Wrapper_v1_0_UW_Channel0 #
-	(
-		// Users to add parameters here
-		parameter C_M_FLASH_CHANNEL		=	3'd0,
-		parameter C_M_BRAM_BASE_ADDR	=	32'h5000_0000,
-		// User parameters ends
-		// Base address of targeted slave
-		parameter  C_M_TARGET_SLAVE_BASE_ADDR	= 32'h43c0_0000,
-		// Burst Length. Supports 1, 2, 4, 8, 16, 32, 64, 128, 256 burst lengths
-		parameter integer C_M_AXI_BURST_LEN	= 16,
-		// Thread ID Width
-		parameter integer C_M_AXI_ID_WIDTH	= 1,
-		// Width of Address Bus
-		parameter integer C_M_AXI_ADDR_WIDTH	= 32,
-		// Width of Data Bus
-		parameter integer C_M_AXI_DATA_WIDTH	= 32,
-		// Width of User Write Address Bus
-		parameter integer C_M_AXI_AWUSER_WIDTH	= 0,
-		// Width of User Read Address Bus   
-		parameter integer C_M_AXI_ARUSER_WIDTH	= 0,
-		// Width of User Write Data Bus
-		parameter integer C_M_AXI_WUSER_WIDTH	= 0,
-		// Width of User Read Data Bus
-		parameter integer C_M_AXI_RUSER_WIDTH	= 0,
-		// Width of User Response Bus 
-		parameter integer C_M_AXI_BUSER_WIDTH	= 0
-	)
-	(
-	  // Users to add ports here
-		input  	wire 		M02_finish_flag, 
-		output 	wire 		check_M02_state_flag,
+    // User parameters ends
+    // Do not modify the parameters beyond this line
 
-		input  	wire [3:0] 	Way,
-		input  	wire [C_M_AXI_DATA_WIDTH -1:0] Row_address,
-		input	wire [7:0]	check_nfc_busy,
-		input	wire [1:0]	UW_count,
-		output	reg	  	UW_Finish,
-		output  reg   	UW_Busy,
-		output	reg		change_based_address,	
-	  // User ports ends
-	  // // Initiate AXI transactions
+    // Base address of targeted slave
+    parameter  C_M_TARGET_SLAVE_BASE_ADDR	= 32'h2FFFF_E008,
+    // Burst Length. Supports 1, 2, 4, 8, 16, 32, 64, 128, 256 burst lengths
+    parameter integer C_M_AXI_BURST_LEN	= 8,
+    // Thread ID Width
+    parameter integer C_M_AXI_ID_WIDTH	= 1,
+    // Width of Address Bus
+    parameter integer C_M_AXI_ADDR_WIDTH	= 32,
+    // Width of Data Bus
+    parameter integer C_M_AXI_DATA_WIDTH	= 32,
+    // Width of User Write Address Bus
+    parameter integer C_M_AXI_AWUSER_WIDTH	= 0,
+    // Width of User Read Address Bus
+    parameter integer C_M_AXI_ARUSER_WIDTH	= 0,
+    // Width of User Write Data Bus
+    parameter integer C_M_AXI_WUSER_WIDTH	= 0,
+    // Width of User Read Data Bus
+    parameter integer C_M_AXI_RUSER_WIDTH	= 0,
+    // Width of User Response Bus
+    parameter integer C_M_AXI_BUSER_WIDTH	= 0
+)(
+		// Users to add ports here
+		input		WS_ALL_Done,
+		// User ports ends
+		// Do not modify the ports beyond this line
+
+		// Initiate AXI transactions
 		input wire  INIT_AXI_TXN,
-
+		// Asserts when transaction is complete
+		output wire  TXN_DONE,
+		// Asserts when ERROR is detected
+		output reg  ERROR,
+		// Global Clock Signal.
 		input wire  M_AXI_ACLK,
+		// Global Reset Singal. This Signal is Active Low
 		input wire  M_AXI_ARESETN,
-
-		input wire  M_AXI_AWREADY,
-		output wire  M_AXI_AWVALID,
-		output wire [C_M_AXI_ADDR_WIDTH-1 : 0] M_AXI_AWADDR,
-		output wire [1 : 0] M_AXI_AWBURST,
-
-		input wire  M_AXI_WREADY,
-		output wire  M_AXI_WVALID,
-		output wire [C_M_AXI_DATA_WIDTH-1 : 0] M_AXI_WDATA,
-		output wire  M_AXI_WLAST,
-
-		input wire [1 : 0] M_AXI_BRESP,
-
+		// Master Interface Write Address ID
 		output wire [C_M_AXI_ID_WIDTH-1 : 0] M_AXI_AWID,
+		// Master Interface Write Address
+		output wire [C_M_AXI_ADDR_WIDTH-1 : 0] M_AXI_AWADDR,
+		// Burst length. The burst length gives the exact number of transfers in a burst
 		output wire [7 : 0] M_AXI_AWLEN,
+		// Burst size. This signal indicates the size of each transfer in the burst
 		output wire [2 : 0] M_AXI_AWSIZE,
+		// Burst type. The burst type and the size information, 
+    // determine how the address for each transfer within the burst is calculated.
+		output wire [1 : 0] M_AXI_AWBURST,
+		// Lock type. Provides additional information about the
+    // atomic characteristics of the transfer.
 		output wire  M_AXI_AWLOCK,
+		// Memory type. This signal indicates how transactions
+    // are required to progress through a system.
 		output wire [3 : 0] M_AXI_AWCACHE,
+		// Protection type. This signal indicates the privilege
+    // and security level of the transaction, and whether
+    // the transaction is a data access or an instruction access.
 		output wire [2 : 0] M_AXI_AWPROT,
+		// Quality of Service, QoS identifier sent for each write transaction.
 		output wire [3 : 0] M_AXI_AWQOS,
+		// Optional User-defined signal in the write address channel.
 		output wire [C_M_AXI_AWUSER_WIDTH-1 : 0] M_AXI_AWUSER,
+		// Write address valid. This signal indicates that
+    // the channel is signaling valid write address and control information.
+		output wire  M_AXI_AWVALID,
+		// Write address ready. This signal indicates that
+    // the slave is ready to accept an address and associated control signals
+		input wire  M_AXI_AWREADY,
+		// Master Interface Write Data.
+		output wire [C_M_AXI_DATA_WIDTH-1 : 0] M_AXI_WDATA,
+		// Write strobes. This signal indicates which byte
+    // lanes hold valid data. There is one write strobe
+    // bit for each eight bits of the write data bus.
 		output wire [C_M_AXI_DATA_WIDTH/8-1 : 0] M_AXI_WSTRB,
+		// Write last. This signal indicates the last transfer in a write burst.
+		output wire  M_AXI_WLAST,
+		// Optional User-defined signal in the write data channel.
 		output wire [C_M_AXI_WUSER_WIDTH-1 : 0] M_AXI_WUSER,
-
-
+		// Write valid. This signal indicates that valid write
+    // data and strobes are available
+		output wire  M_AXI_WVALID,
+		// Write ready. This signal indicates that the slave
+    // can accept the write data.
+		input wire  M_AXI_WREADY,
+		// Master Interface Write Response.
 		input wire [C_M_AXI_ID_WIDTH-1 : 0] M_AXI_BID,
 		// Write response. This signal indicates the status of the write transaction.
+		input wire [1 : 0] M_AXI_BRESP,
 		// Optional User-defined signal in the write response channel
 		input wire [C_M_AXI_BUSER_WIDTH-1 : 0] M_AXI_BUSER,
 		// Write response valid. This signal indicates that the
@@ -129,8 +172,9 @@
 		input wire  M_AXI_RVALID,
 		// Read ready. This signal indicates that the master can
     // accept the read data and response information.
-		output wire  M_AXI_RREADY        
-    );
+		output wire  M_AXI_RREADY
+	);
+
 
 	// function called clogb2 that returns an integer which has the
 	//value of the ceiling of the log base 2
@@ -154,29 +198,16 @@
 	// total number of burst transfers is master length divided by burst length and burst size
 	 localparam integer C_NO_BURSTS_REQ = C_MASTER_LENGTH-clogb2((C_M_AXI_BURST_LEN*C_M_AXI_DATA_WIDTH/8)-1);
 
-// <--------------local_parameter------------------>
-    //parameter for offset
-    parameter [15:0] ID_register_offset = 16'h0000; 
-    parameter [15:0] SP_register_offset = 16'h4000;
-    parameter [15:0] CC_register_offset = 16'h3000; 
-    parameter [31:0] statusreport_reg   = 32'h0000_0000;
 
-	parameter [19:0] MT_info_offset 	= 20'hA_0000;
-// <-------local_parameter_End---------------------->
-
+	 reg [1:0] mst_exec_state;
 // <-------------internal_signals------------------>
-	//user add
-	wire [C_M_AXI_ADDR_WIDTH-1 : 0] 	  Targert_addr;
-	
-	reg [C_M_AXI_ADDR_WIDTH-1 : 0] 		target_count;		
-	//
 	reg [C_M_AXI_ADDR_WIDTH-1 : 0] 		axi_awaddr;
 	reg  								axi_awvalid;
 	reg [C_M_AXI_DATA_WIDTH-1 : 0] 		axi_wdata;
 	reg [C_M_AXI_DATA_WIDTH/8-1 : 0] 	axi_wstrb;
-	reg  	axi_wlast;
-	reg  	axi_wvalid;
-	reg  	axi_bready;
+	reg  								axi_wlast;
+	reg  								axi_wvalid;
+	reg  								axi_bready;
 	reg [C_M_AXI_ADDR_WIDTH-1 : 0] 	axi_araddr;
 	reg  	axi_arvalid;
 	reg  	axi_rready;
@@ -198,7 +229,7 @@
 	reg  	read_mismatch;
 	reg  	burst_write_active;
 	reg  	burst_read_active;
-	reg 	[C_M_AXI_DATA_WIDTH-1 : 0] 	expected_rdata;
+	reg [C_M_AXI_DATA_WIDTH-1 : 0] 	expected_rdata;
 	//Interface response error flags
 	wire  	write_resp_error;
 	wire  	read_resp_error;
@@ -209,309 +240,59 @@
 	reg  	init_txn_edge;
 	wire  	init_txn_pulse;
 
-  	reg		[C_M_AXI_ADDR_WIDTH-1 : 0] comp_report;
-
-    reg 	[1:0] store_data_count;
-
-	//reg		[6:0]	wait_read_count;
-	reg		[13:0]	wait_read_count;
 
 // <----------- I/O Connection---------------------->
-	//user 
+
+	//I/O Connections. Write Address (AW)
 	assign M_AXI_AWID	= 'b0;
-	assign M_AXI_AWADDR	= axi_awaddr;	
+	//The AXI address is a concatenation of the target base address + active offset range
+	assign M_AXI_AWADDR	= axi_awaddr;
+	//Burst LENgth is number of transaction beats, minus 1
 	assign M_AXI_AWLEN	= C_M_AXI_BURST_LEN - 1;
-	assign M_AXI_AWSIZE	= 3'b010;
-	//clogb2((C_M_AXI_DATA_WIDTH/8)-1);
+	//Size should be C_M_AXI_DATA_WIDTH, in 2^SIZE bytes, otherwise narrow bursts are used
+	assign M_AXI_AWSIZE	= clogb2((C_M_AXI_DATA_WIDTH/8)-1);
+	//INCR burst type is usually used, except for keyhole bursts
 	assign M_AXI_AWBURST	= 2'b01;
-	assign M_AXI_AWLOCK		= 1'b0;
+	assign M_AXI_AWLOCK	= 1'b0;
+	//Update value to 4'b0011 if coherent accesses to be used via the Zynq ACP port. Not Allocated, Modifiable, not Bufferable. Not Bufferable since this example is meant to test memory, not intermediate cache. 
 	assign M_AXI_AWCACHE	= 4'b0010;
 	assign M_AXI_AWPROT	= 3'h0;
 	assign M_AXI_AWQOS	= 4'h0;
 	assign M_AXI_AWUSER	= 'b1;
-	assign M_AXI_AWVALID= axi_awvalid;
+	assign M_AXI_AWVALID	= axi_awvalid;
+	//Write Data(W)
 	assign M_AXI_WDATA	= axi_wdata;
-	assign M_AXI_WSTRB	= axi_wstrb;//{(C_M_AXI_DATA_WIDTH/8){1'b1}};
+	//All bursts are complete and aligned in this example
+	assign M_AXI_WSTRB	= axi_wstrb;
 	assign M_AXI_WLAST	= axi_wlast;
 	assign M_AXI_WUSER	= 'b0;
 	assign M_AXI_WVALID	= axi_wvalid;
+	//Write Response (B)
 	assign M_AXI_BREADY	= axi_bready;
+	//Read Address (AR)
 	assign M_AXI_ARID	= 'b0;
 	assign M_AXI_ARADDR	= axi_araddr;
+	//Burst LENgth is number of transaction beats, minus 1
 	assign M_AXI_ARLEN	= C_M_AXI_BURST_LEN - 1;
+	//Size should be C_M_AXI_DATA_WIDTH, in 2^n bytes, otherwise narrow bursts are used
 	assign M_AXI_ARSIZE	= clogb2((C_M_AXI_DATA_WIDTH/8)-1);
-	assign M_AXI_ARBURST	= 2'b01; 
+	//INCR burst type is usually used, except for keyhole bursts
+	assign M_AXI_ARBURST	= 2'b01;
 	assign M_AXI_ARLOCK	= 1'b0;
+	//Update value to 4'b0011 if coherent accesses to be used via the Zynq ACP port. Not Allocated, Modifiable, not Bufferable. Not Bufferable since this example is meant to test memory, not intermediate cache. 
 	assign M_AXI_ARCACHE	= 4'b0010;
 	assign M_AXI_ARPROT	= 3'h0;
 	assign M_AXI_ARQOS	= 4'h0;
 	assign M_AXI_ARUSER	= 'b1;
 	assign M_AXI_ARVALID	= axi_arvalid;
+	//Read and Read Response (R)
 	assign M_AXI_RREADY	= axi_rready;
+	//Example design I/O
+	assign TXN_DONE	= compare_done;
+	//Burst size in bytes
 	assign burst_size_bytes	= C_M_AXI_BURST_LEN * C_M_AXI_DATA_WIDTH/8;
 	assign init_txn_pulse	= (!init_txn_ff2) && init_txn_ff;
 
-// <-------------------FSM------------------------->
-  //parameter for FSM
-	parameter [4:0] Init     		= 5'b00000,
-					Trigger  		= 5'b00001,
-					STATUS_1 		= 5'b00010,
-					WAIT_CHECK_BUSY	= 5'b10000,
-					NFC_BUSY    	= 5'b10001,
-
-					Check    		= 5'b00011,
-					CLEAR    		= 5'b00100,
-					STATUS_2 		= 5'b00101,
-
-					WAIT_Counter 	= 5'b00110,
-					WAIT_READ		= 5'b00111,
-					WAIT_1   		= 5'b01000,					
-					Transfer 		= 5'b01001,
-
-					
-					CLEAR_TRANSFER 	= 5'b01010,
-					TRANSFER_CR 	= 5'b01011, 
-					WAIT_Counter_2 	= 5'b01100,
-					STATUS_3 		= 5'b01101,
-					STATUS_3_2 		= 5'b01110,
-					WAIT   	 		= 5'b01111,
-					FINISH 			= 5'b10000;
-  		
-//<---------------Control Signal------------------->
-	wire addr_done;
-	reg [2:0] count;
-	reg [4:0] S_cur, S_next;
-	reg [10:0] mp_counter;
-	
-	wire 	mp_done;  // revise times 
-	assign	mp_done		=	(mp_counter == 100) ? 1'b1 : 1'b0;
-
-	wire Trigger_done, Check_done, Trans_done; 
-	
-	wire R_done, W_done;
-	wire Check_R_done;
-
-	assign R_done	= axi_rready && M_AXI_RVALID && M_AXI_RLAST;
-	assign W_done	= M_AXI_BVALID && axi_bready;
-	
-	assign Trigger_done = ((S_cur == Trigger || S_cur == STATUS_1) && W_done)? 1'b1 : 1'b0;
-	assign Check_done   = ((S_cur == Check || S_cur == CLEAR || S_cur == STATUS_2) && W_done)? 1'b1 : 1'b0;
-	assign Trans_done   = ((S_cur == Transfer || S_cur == TRANSFER_CR || S_cur == CLEAR_TRANSFER) && W_done)? 1'b1 : 1'b0;	
-	assign Check_R_done = ((S_cur == WAIT_READ || S_cur == STATUS_3 || S_cur == STATUS_3_2) && R_done)? 1'b1 : 1'b0;
-	
-	reg  trigger_error;
-	reg  [C_M_AXI_DATA_WIDTH -1:0] r_status_data;
-	
-	always @(*) begin
-		if(S_cur == STATUS_2) begin
-			if (r_status_data[7:5] == 2'b11)
-				trigger_error	=	1'b0;
-			else
-				trigger_error	=	1'b1;
-		end
-		else
-			trigger_error	=	1'b0;
-	end
-
-	wire mp_counter_flag;// (use pulse)	
-	assign	mp_counter_flag	=	Trans_done;	
-	assign check_M02_state_flag	 =	(S_cur == FINISH) ? 1'b1 : 1'b0;
-    always @(posedge M_AXI_ACLK)	begin                                                                                                     
-	  if (M_AXI_ARESETN == 0 || init_txn_pulse == 1'b1)  
-		change_based_address	 <=	1'b0;	
-	  else
-		change_based_address	 <=	(S_cur == WAIT) ? 1'b1: 1'b0;
-	end
-
-	always @(posedge M_AXI_ACLK)	begin                                                                                                     
-	  if (M_AXI_ARESETN == 0 || init_txn_pulse == 1'b1)                                                                                 
-	    writes_done <= 1'b0;                                                                                                                     
-	    //else if (M_AXI_BVALID && axi_bready && (write_burst_counter == {(C_NO_BURSTS_REQ-1){1}}) && axi_wlast)
-	    else if (M_AXI_BVALID && (write_burst_counter[C_NO_BURSTS_REQ]) && axi_bready)                          
-	      writes_done <= 1'b1;                                                                                  
-	    else                                                                                                    
-	      writes_done <= writes_done;                                                                           
-	end 
-
-	always @(posedge M_AXI_ACLK) begin
-	  if (M_AXI_ARESETN == 0 || init_txn_pulse == 1'b1)                                                                                 
-		store_data_count	<=	1'b0;
-	  else if  (store_data_count == 2'd2)
-	    store_data_count	<=	store_data_count;
-	  else if  (S_cur == STATUS_3 && Check_R_done)
-		store_data_count	<=	store_data_count + 1'b1;
-	  else
-		store_data_count	<=	1'b0;	  
-	end 
-
-// <------------------- UW reset --------------------->
-	reg	UW_reset;
-	always @(posedge M_AXI_ACLK)begin
-		if(M_AXI_ARESETN == 0) 			  UW_reset <= 1;
-		else if (init_txn_pulse == 1'b1)  UW_reset <= 0;
-		else          					  UW_reset <= UW_reset;
-	end	
-
-always @(posedge M_AXI_ACLK)begin
-	if(UW_reset) 				  	wait_read_count	<=	'd0;
-	else if(S_cur == WAIT_CHECK_BUSY)  wait_read_count	<=	wait_read_count + 1'b1;
-	else if(S_cur == WAIT_Counter)  wait_read_count	<=	wait_read_count + 1'b1;
-	else if(S_cur == WAIT_Counter_2) wait_read_count	<=	wait_read_count + 1'b1;
-	else          				  	wait_read_count	<=	'd0;
-end
-
-// <-----------------------FSM----------------------->
-	//Changing FSM state from State_next to State_current
-	always @(posedge M_AXI_ACLK)begin
-		if(M_AXI_ARESETN == 0) 				S_cur <= Init;
-		//else if (init_txn_pulse == 1'b1)  S_cur <= Init;
-		else          					  S_cur <= S_next;
-	end
-	//FSM
-	always @(*)begin
-		case(S_cur)
-			Init: begin
-				if (init_txn_pulse) S_next = Trigger; 
-				else 				S_next = Init;
-				// S_next = Trigger;
-			end
-			Trigger: begin
-				if(Trigger_done)  	S_next = STATUS_1;      
-				else              	S_next = Trigger;
-			end
-			STATUS_1: begin
-				if (Trigger_done) 	S_next = WAIT_CHECK_BUSY; // && axi_awvalid && M_AXI_AWREADY
-				else 				S_next = STATUS_1;				
-			end
-			WAIT_CHECK_BUSY: begin
-				if(wait_read_count == 7'd100)	S_next	=	NFC_BUSY;
-				else							S_next	=	WAIT_CHECK_BUSY;				
-			end
-			NFC_BUSY: begin
-				if(&check_nfc_busy)
-					S_next = Check;
-				else
-					S_next = NFC_BUSY;
-			end
-			Check: begin
-				//if(Check_done && (count == 3'd3))    	S_next = STATUS_2;
-				if(Check_done)    	S_next = CLEAR;
-				//else if(Check_done && (count == 3'd3))  S_next = STATUS_2;
-				else              	S_next = Check;
-			end
-			CLEAR: begin
-				if (Check_done) 	 S_next = STATUS_2; // && axi_awvalid && M_AXI_AWREADY
-				else				 S_next = CLEAR;				
-			end
-			STATUS_2: begin
-				if (Check_done)		S_next = WAIT_Counter;
-				else 				S_next = STATUS_2;  
-			end
-			WAIT_Counter: begin
-				if(wait_read_count == 7'd100)	S_next	=	WAIT_READ;
-				else							S_next	=	WAIT_Counter;
-			end
-			WAIT_READ: begin
-				if (Check_R_done)   S_next = WAIT_1;
-				else 				S_next = WAIT_READ;  				
-			end
-			WAIT_1: begin
-			  if(r_status_data[0]) begin			
-				if (~trigger_error) 	 S_next = Transfer; // && axi_awvalid && M_AXI_AWREADY
-				else if (trigger_error)  S_next = Trigger;	
-			  end					
-			  else				S_next = Trigger;					
-			end
-			//   if(r_status_data[0]) begin			
-			// 	if (Check_R_done && ~trigger_error) 	 S_next = Transfer; // && axi_awvalid && M_AXI_AWREADY
-			// 	else if (Check_R_done && trigger_error)  S_next = Trigger;	
-			//   end					
-			//   else				S_next = STATUS_2;					
-			//end
-			Transfer: begin
-				if (Trans_done) 	S_next = CLEAR_TRANSFER; // && axi_awvalid && M_AXI_AWREADY
-				else 				S_next = Transfer;									
-			end
-			CLEAR_TRANSFER: begin
-				if (Trans_done) 	 S_next = TRANSFER_CR; // && axi_awvalid && M_AXI_AWREADY
-				else				 S_next = CLEAR_TRANSFER;				
-			end
-			TRANSFER_CR: begin
-				if (Trans_done) 	S_next = WAIT_Counter_2; // && axi_awvalid && M_AXI_AWREADY
-				else 				S_next = TRANSFER_CR;						
-			end
-			WAIT_Counter_2: begin
-				if(wait_read_count == 15'd16383)	S_next	=	STATUS_3;
-				else								S_next	=	WAIT_Counter_2;			
-			end
-			STATUS_3: begin
-				if (Check_R_done) 	 S_next = STATUS_3_2; // && axi_awvalid && M_AXI_AWREADY
-				else				 S_next = STATUS_3;					
-				// if 		(comp_report[0])		S_next = FINISH;
-				// // else if (Err_not)		S_next = Transfer;
-				// // else if (Transfer_not)  S_next = Trigger;
-				// else					S_next = STATUS_3;
-			end
-			STATUS_3_2: begin
-				if (Check_R_done) 	 S_next = WAIT; // && axi_awvalid && M_AXI_AWREADY
-				else				 S_next = STATUS_3_2;					
-			end
-			WAIT: begin
-				//if (comp_report[0]) S_next = FINISH;
-				if 		(comp_report[0]) begin
-					if(store_data_count == 2'd2)
-						S_next	= 	FINISH;
-					else	
-						S_next	=	Init;
-				end
-//				else if (Err_not)		S_next = Transfer;
-//				else if (Transfer_not)  S_next = Trigger;
-				// else if (comp_report[0] && (store_data_count == 0)) 
-				// 	S_next = STATUS_3;
-				// else if (comp_report[0] == 1'b0)
-				// 	S_next = STATUS_3;								
-				else	
-				  S_next = WAIT;				
-			end
-			// if(Transfer_comp_report == 32'hFF_A501)
-			FINISH: 	S_next = FINISH;				  	
-			default:begin       
-				S_next	=	Init;
-				// if(Trans_done && !mp_done)			S_next = Init;   // && Data_done
-				// else if(Trans_done && mp_done)	S_next = Trigger;    //  && !Data_done 
-				// else              								S_next = Transfer;
-			end
-		endcase
-	end
-
-//<-----------------count-------------------------->
-	// <Conut the number of command write into prticular place>
-		always @(posedge M_AXI_ACLK) begin
-		if (!M_AXI_ARESETN || init_txn_pulse )   count <= 3'b0;   
-		else            
-			case (S_cur)
-				Trigger:		count <= (Trigger_done)? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
-				STATUS_1:		count <= (Trigger_done)  ? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;				
-				Check, CLEAR:   count <= (Check_done)  ? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;				
-				STATUS_2:		begin
-					if(Check_done || Check_R_done)	
-						count	<=	3'd0;
-					else if	(axi_wvalid && M_AXI_WREADY) 
-						count	<=	count + 1;
-					else if	(M_AXI_RVALID && axi_rready) 
-						count	<=	count + 1;
-					else	
-						count	<=	count;					
-				end
-			    WAIT_READ:      count <= (Check_R_done)  ? 3'd0 : (M_AXI_RVALID && axi_rready) ? count + 1 : count;
-				//count <= (Check_R_done)  ? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
-				Transfer,CLEAR_TRANSFER: count <= (Trans_done)  ? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
-				TRANSFER_CR:	count <= (Trans_done)  ? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
-				STATUS_3:   	count <= (Check_R_done)  ? 3'd0 : (M_AXI_RVALID && axi_rready) ? count + 1 : count;
-				STATUS_3_2:   	count <= (Check_R_done)  ? 3'd0 : (M_AXI_RVALID && axi_rready) ? count + 1 : count;
-				default: 		count <= count;  
-			endcase
-		end
 
 // <----------- Initialize Pulse-------------------->
 	always @(posedge M_AXI_ACLK)										      
@@ -525,63 +306,86 @@ end
 	else                                                                       
 		begin  
 		init_txn_ff <= INIT_AXI_TXN;
+		//init_txn_ff <= 1'b1;
 		init_txn_ff2 <= init_txn_ff;                                                                 
 		end                                                                      
 	end    
 
-// < ----------Block List Decoder Transfer----------->
-	reg [7:0] flash_Way;
-	always @(*) begin
-		case (Way)
-			3'd0:		flash_Way	= 8'b00000001;	
-			3'd1:		flash_Way	= 8'b00000010;
-			3'd2:		flash_Way	= 8'b00000100;
-			3'd3:		flash_Way	= 8'b00001000;
-			3'd4:		flash_Way	= 8'b00010000;
-			3'd5:		flash_Way	= 8'b00100000;
-			3'd6:		flash_Way	= 8'b01000000;
-			3'd7:		flash_Way	= 8'b10000000;
-			default:	flash_Way	= 8'b0;
+// <-------------------FSM------------------------->
+  //parameter for FSM
+	parameter [1:0] Init     		= 2'b00,
+					WCDMA			= 2'b01,
+					FINISH   		= 2'b10;
+
+//<---------------Control Signal------------------->
+	wire addr_done;
+	reg [2:0] count;
+	reg [4:0] S_cur, S_next;
+
+	wire WCDMA_done; 
+
+	wire R_done, W_done;
+
+	assign R_done	= axi_rready && M_AXI_RVALID && M_AXI_RLAST;
+	assign W_done	= M_AXI_BVALID && axi_bready;
+	
+	assign WCDMA_done = ((S_cur == WCDMA) && W_done)? 1'b1 : 1'b0;
+	
+	
+	//wire mp_counter_flag;// (use pulse)	
+	//assign	mp_counter_flag	=	Trans_done;	
+	//assign check_M02_state_flag	 =	Trigger_done;
+
+
+// <------------------- UW reset --------------------->
+	reg	UW_reset;
+	always @(posedge M_AXI_ACLK)begin
+		if(M_AXI_ARESETN == 0) 			  UW_reset <= 1;
+		else if (init_txn_pulse == 1'b1)  UW_reset <= 0;
+		else          					  UW_reset <= UW_reset;
+	end	
+
+// <-----------------------FSM----------------------->
+	//Changing FSM state from State_next to State_current
+	always @(posedge M_AXI_ACLK)begin
+		if(M_AXI_ARESETN == 0) 			  S_cur <= Init;
+		//else if (init_txn_pulse == 1'b1)  S_cur <= Init;
+		else          					  S_cur <= S_next;
+	end
+	//FSM
+	always @(*)begin
+		case(S_cur)
+			Init: begin
+				// if (init_txn_pulse) S_next = Trigger; // && axi_awvalid && M_AXI_AWREADY
+				// else 				S_next = Init;
+				if (init_txn_pulse) S_next = WCDMA;
+				else				S_next = Init;
+			end
+			WCDMA: begin
+				if(WCDMA_done)  	S_next = FINISH;      
+				else              	S_next = WCDMA;
+			end
+			// if(Transfer_comp_report == 32'hFF_A501)
+			FINISH: begin
+				S_next = FINISH;				  	
+			end
+			default:begin       
+				S_next	=	Init;
+			end
 		endcase
 	end
 
-// < -------------- Targert_addr ----------------------//
-	//assign	Targert_addr	=	32'h5005_4000;//C_M_BRAM_BASE_ADDR + MT_info_offset;
-	reg	[31:0]	reg_target;
-	assign	Targert_addr	=	reg_target;
-	// always @(*) begin
-	// 	if () begin
-	// 		Targert_addr	=	C_M_BRAM_BASE_ADDR + MT_info_offset;
-	// 	end 
-	// 	else begin
-	// 		// use unet 0 FSM to Control
-	// 		Targert_addr	=	C_M_BRAM_BASE_ADDR;
-	// 	end
-	// end
-	always @(posedge M_AXI_ACLK) begin
-		if (M_AXI_ARESETN == 1'b0 ) begin
-			reg_target	<=	32'h5005_0000;
-		end 
-		else if (S_cur == WAIT) begin
-			// use unet 0 FSM to Control
-			reg_target	<=	reg_target + 32'h0000_4000;
+//<-----------------count-------------------------->
+	// <Conut the number of command write into prticular place>
+		always @(posedge M_AXI_ACLK) begin
+		if (!M_AXI_ARESETN || init_txn_pulse )   count <= 3'b0;   
+		else            
+			case (S_cur)
+				WCDMA:		count <= (WCDMA_done)? 3'd0 : (axi_wvalid && M_AXI_WREADY) ? count + 1 : count;
+				default: 		count <= count;  
+			endcase
 		end
-	end
 
-//WRITE
-	reg  Write_flag;
-
-	always @(posedge M_AXI_ACLK) begin
-		if (M_AXI_ARESETN == 1'b0 ) begin
-			Write_flag <= 1'b0;  
-		end 
-		else begin
-			if((S_cur == STATUS_2))
-				Write_flag <= (Check_done) ? 1'b1 : Write_flag;
-			else
-				Write_flag <= 1'b0;				
-		end
-	end
 
 // <---------start_single_burst_write---------------->
 	always @ ( posedge M_AXI_ACLK) begin          
@@ -591,7 +395,7 @@ end
 			end                                                                   
 		else 
 			case (S_cur)
-				Trigger, STATUS_1, Check, CLEAR,STATUS_2, Transfer, TRANSFER_CR, CLEAR_TRANSFER:  begin				
+				WCDMA:  begin				
 	                if (~axi_awvalid && ~start_single_burst_write && ~burst_write_active)                       
 	                  begin                                                                                     
 	                    start_single_burst_write <= 1'b1;                                                       
@@ -601,16 +405,6 @@ end
 	                    start_single_burst_write <= 1'b0; //Negate to generate a pulse                          
 	                  end 
 				end
-				// STATUS_2: begin
-	            //     if (~axi_awvalid && ~start_single_burst_write && ~burst_write_active)                       
-	            //       begin                                                                                     
-	            //         start_single_burst_write <= 1'b1;                                                       
-	            //       end                                                                                       
-	            //     else                                                                                        
-	            //       begin                                                                                     
-	            //         start_single_burst_write <= 1'b0; //Negate to generate a pulse                          
-	            //       end 					
-				// end
 				default:  start_single_burst_write <= 1'b0;
 			endcase                                          
 	end 	
@@ -657,29 +451,13 @@ end
 	      end                                                              
 		else begin
 		  case (S_cur)
-			Trigger: begin
-				axi_awaddr		<=	C_M_TARGET_SLAVE_BASE_ADDR + SP_register_offset;
-				// if(M_AXI_AWREADY && axi_awvalid)
-				// 	axi_awaddr	<= 	32'b0; 			
-				// else
-				// 	axi_awaddr	<=	axi_awaddr + 32'd4;		
-			end 	
-			STATUS_1: 	axi_awaddr <= C_M_TARGET_SLAVE_BASE_ADDR + CC_register_offset;  
-			Check:		axi_awaddr <= C_M_TARGET_SLAVE_BASE_ADDR + SP_register_offset;   
-			CLEAR:		axi_awaddr <= 32'h1700_0100 + 32 * C_M_FLASH_CHANNEL + Way;  	
-			STATUS_2:   axi_awaddr <= C_M_TARGET_SLAVE_BASE_ADDR + CC_register_offset;  
-
-
-			Transfer: 	axi_awaddr <= C_M_TARGET_SLAVE_BASE_ADDR + SP_register_offset;
-			CLEAR_TRANSFER: axi_awaddr <= 32'h1700_0000 + 32 * C_M_FLASH_CHANNEL + 4 * Way;
-			TRANSFER_CR:axi_awaddr <= C_M_TARGET_SLAVE_BASE_ADDR + CC_register_offset;   
-
+			WCDMA: 		axi_awaddr <= C_M_TARGET_SLAVE_BASE_ADDR;  
 			default: 	axi_awaddr <= 32'b0;   
 		  endcase          
 		end                                         
 	 end     
 
-// <---------- Write Data Channel ---------------->
+// <---------- Write Data Channel ---------------->  //HAVE WRONG
 	always @(posedge M_AXI_ACLK)	begin                                                                															
 		if (M_AXI_ARESETN == 0 || init_txn_pulse == 1'b1 )                                                                                                      
 			axi_wvalid <= 1'b0;                                                                                                                       
@@ -693,17 +471,14 @@ end
 
 	always @(*) begin
 	  case(S_cur)
-		Trigger: begin
-				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
+		WCDMA: begin
+			axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
 			case (count)
 				3'd0: begin             //write opcode into nsc_base_address + SP_register_offset
-				axi_wdata    = 32'h0000_01C4;
+				axi_wdata    = 32'h0000_0001;
 				end
 				3'd1: begin             //write way into nsc_base_address + SP_register_offset + 4
-				axi_wdata    = flash_Way;
-				end
-				3'd2: begin             //write row_address into nsc_base_address + SP_register_offset + 8
-				axi_wdata    = Row_address;
+				axi_wdata    = 32'h0000_0001;
 				end
 				default: begin           //otherwise
 				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b0}};
@@ -711,124 +486,11 @@ end
 				end
 			endcase			
 		end
-		STATUS_1: begin
-			if (count == 3'd0) begin
-				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
-				axi_wdata    = 32'h0000_0001;						
-			end 
-			else begin
-				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b0}};
-				axi_wdata    = 32'h0000_0000;						
-			end
-
-		end
-		Check:begin
-		 // if (axi_wvalid && M_AXI_WREADY) begin
-			case (count)
-			3'd0: begin             //write opcode into nsc_base_address + SP_register_offset
-				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
-				axi_wdata    = 32'h0000_0130;
-			end
-			3'd1: begin             //write way into nsc_base_address + SP_register_offset + 4
-				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
-				axi_wdata    = flash_Way;
-			end
-			3'd2: begin             //write statusreport_reg into nsc_base_address + 8
-				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
-				//axi_wdata    = 32'h4580_0090;
-				axi_wdata    = 32'h1700_0100 + 32 * C_M_FLASH_CHANNEL + Way;
-			end
-			default: begin           //otherwise
-				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b0}};			
-				axi_wdata    = 32'h0000_0000;
-			end
-			endcase
-		end
-		CLEAR: begin
-			if (count == 3'd0) begin
-				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
-				axi_wdata    = 32'h0000_0000;						
-			end 
-			else begin
-				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b0}};
-				axi_wdata    = 32'h0000_0000;						
-			end
-		end
-		STATUS_2: begin
-			if (count == 3'd0) begin
-				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
-				axi_wdata    = 32'h0000_0001;						
-			end 
-			else begin
-				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b0}};
-				axi_wdata    = 32'h0000_0000;						
-			end			
-		end
-		Transfer:begin
-		 //	if (axi_wvalid && M_AXI_WREADY) begin
-			axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
-			case (count)
-				3'd0: begin             //write opcode into nsc_base_address + SP_register_offset
-				axi_wdata    = 32'h0000_0338;
-				end
-				3'd1: begin             //write way into nsc_base_address + SP_register_offset + 4
-				axi_wdata    = flash_Way;
-				end
-				3'd2: begin             //write row_address into nsc_base_address + SP_register_offset + 8
-				axi_wdata    = Row_address;
-				// if (circuit) begin  // circuit ==> check first info page get
-				//	axi_wdata    = Row_address + counter(for row address);							
-				// end else begin
-				//	axi_wdata    = Row_address;						
-				// end
-				end
-				3'd3: begin             //write BRAM address into nsc_base_address + SP_register_offset + 12
-				axi_wdata    = Targert_addr;
-				end
-				3'd4: begin             //write spare data address (not store)into nsc_base_address + SP_register_offset + 16    //need check
-				axi_wdata    = 32'h500b_0000; 
-				end
-				3'd5: begin             //write ERR info address into nsc_base_address + SP_register_offset + 20     //need check
-				//axi_wdata    = 32'h4580_0094;
-				axi_wdata    = 32'h1700_0200 + 352 * C_M_FLASH_CHANNEL + 44 * Way;
-				end
-				3'd6: begin             //write Complete address into nsc_base_address + SP_register_offset + 24
-				// axi_wdata    = 32'h4580_0098;				
-				axi_wdata    = 32'h1700_0000 + 32 * C_M_FLASH_CHANNEL + 4 * Way;
-				end
-				default: begin          //otherwise
-				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b0}};
-				axi_wdata    = 32'h0000_0000;
-				end
-			endcase
-		//	end
-		end
-		CLEAR_TRANSFER: begin
-			if (count == 3'd0) begin
-				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
-				axi_wdata    = 32'h0000_0000;						
-			end 
-			else begin
-				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b0}};
-				axi_wdata    = 32'h0000_0000;						
-			end
-		end
-		TRANSFER_CR: begin
-			if (count == 3'd0) begin
-				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b1}};
-				axi_wdata    = 32'h0000_0001;						
-			end 
-			else begin
-				axi_wstrb	 = {(C_M_AXI_DATA_WIDTH/8){1'b0}};
-				axi_wdata    = 32'h0000_0000;						
-			end			
-		end
 		default: begin
 			axi_wdata    = 32'h0000_0000;			
 		end
 	  endcase			
 	end
-
 
 // <-------------- Write Data Last ------------------->
 	always @(posedge M_AXI_ACLK)                                                      
@@ -918,17 +580,7 @@ end
 		if (M_AXI_ARESETN == 1'b0 ) 
 			begin                           
 				start_single_burst_read <= 1'b0;                                
-			end                                                                   
-		else 
-			case (S_cur)
-				WAIT_READ, STATUS_3, STATUS_3_2:  begin				
-	                if (~axi_arvalid && ~start_single_burst_read && ~burst_read_active && ~M_AXI_RVALID && ~axi_rready)                                                                                                     
-	                    start_single_burst_read <= 1'b1;                                                                                                                                            
-	                else                                                                                                                                                                         
-	                    start_single_burst_read <= 1'b0; //Negate to generate a pulse                          
-				end			
-				default:  start_single_burst_read <= 1'b0;
-			endcase                                          
+			end                                                                                                        
 	end
 
 // <----------- burst_read_active ----------------->
@@ -967,17 +619,7 @@ end
 	    if (M_AXI_ARESETN == 0 || init_txn_pulse == 1'b1)                                            
 	      begin                                                            
 	        axi_araddr <= 'b0;                                             
-	      end                                                              
-		else begin
-		  case (S_cur)
-			WAIT_READ:   axi_araddr <= 32'h1700_0100 + 32 * C_M_FLASH_CHANNEL + 4 * Way;  
-			//0x1700_0100
-			//Transfer: 	axi_araddr <= C_M_TARGET_SLAVE_BASE_ADDR + SP_register_offset;
-			STATUS_3: 	 axi_araddr <= 32'h1700_0200 + 352 * C_M_FLASH_CHANNEL + 44 * Way;
-			STATUS_3_2:  axi_araddr <= 32'h1700_0000 + 32 * C_M_FLASH_CHANNEL + 4 * Way;				
-			default: 	axi_araddr <= 32'b0;   
-		  endcase          
-		end                                         
+	      end                                    
 	 end 
 
 //<---------------- Read data Channel -------------------> 
@@ -1004,115 +646,20 @@ end
 	  end   
 
 
-	always @(posedge M_AXI_ACLK) begin
-	  if (M_AXI_ARESETN == 0 || init_txn_pulse == 1'b1) begin
-		r_status_data	<=	32'h0;
-	  end 
-	  else begin
-		if((S_cur == WAIT_READ) && (M_AXI_RVALID && axi_rready) && (count == 0)) 		
-		//if((S_cur == STATUS_2) && (M_AXI_RVALID && axi_rready) && (count == 0)) 
-			r_status_data	<=	M_AXI_RDATA;
-		else
-			r_status_data	<=	r_status_data;
-	  end	
-	end
-
-	reg [C_M_AXI_DATA_WIDTH -1:0] error_info;
-
-	always @(posedge M_AXI_ACLK) begin
-	  if (M_AXI_ARESETN == 0 || init_txn_pulse == 1'b1) begin
-		error_info	<=	32'h0;
-	  end    
-	  else begin
-		if(S_cur == STATUS_3 &&  (M_AXI_RVALID && axi_rready)  && count == 0) //&& (store_data_count == 0)
-			error_info	<=	M_AXI_RDATA;
-		else
-			error_info	<=	error_info;
-	  end	
-	end
-
-	always @(posedge M_AXI_ACLK) begin
-      if (M_AXI_ARESETN == 0 || init_txn_pulse == 1'b1 ) 	
-      	comp_report	<=	32'h0;
-      else begin 
-		//status_3_CNT
-      	if(S_cur == STATUS_3_2 &&  (M_AXI_RVALID && axi_rready) && count == 0) // && (store_data_count)
-      	  comp_report	<=	M_AXI_RDATA; 
-		else
-		  comp_report	<=	comp_report;
-      end	
-	end
-
-	//status report
-			// if(Transfer_comp_report == 32'hFF_A501)
-			//	  	
+// //Finish Signal (TEMP for WS)
+// 	always @(posedge M_AXI_ACLK) begin
+// 		if (!M_AXI_ARESETN) begin
+// 			UW_Finish	<=	1'b0;				
+// 		end 
+// 		else begin
+// 			if (S_cur	== FINISH) begin
+// 				UW_Finish	<=	1'b1;
+// 			end 
+// 			else begin
+// 				UW_Finish	<=	1'b0;				
+// 			end	
+// 		end
+// 	end
 
 
-//for Transfer info. 
-// <------------ Target Address generator---------------->
-	always @(posedge M_AXI_ACLK) begin
-	if (!M_AXI_ARESETN || init_txn_pulse )   target_count <= 32'd0;   
-	else            
-		if(S_cur == Transfer)
-			target_count <= (Trans_done)  ? 3'd0 : target_count + 32'd1;
-	end
-
-// <------------ counter for mapping table -----------------------//
-	//counter
-	always @(posedge M_AXI_ACLK or posedge M_AXI_ARESETN) begin
-		if(M_AXI_ARESETN == 0) begin
-			mp_counter	<=	 11'd0;
-		end
-		else if(mp_counter_flag) begin  //use Trans done sig.
-			mp_counter	<=	mp_counter	+ 1;
-		end
-		else begin
-			mp_counter	<=	mp_counter;
-		end
-	end
-
-
-	// always @(posedge M_AXI_ACLK) begin
-	// if (!M_AXI_ARESETN) begin
-	// 	axi_trigger_cmd_check	<=	32'd0;
-	// end 
-	// else begin
-	// 	case (S_cur)
-	// 	STATUS_2:	begin	
-	// 		axi_trigger_cmd_check	<=	;	
-	// 	end						
-	// 	default: 	axi_trigger_cmd_check	<=	32'd0;
-	// 	endcase
-	// end
-	// end
-	
-//Finish Signal (TEMP for WS)
-	always @(posedge M_AXI_ACLK) begin
-		if (!M_AXI_ARESETN) begin
-			UW_Finish	<=	1'b0;				
-		end 
-		else begin
-			if (S_cur	== FINISH) begin
-				UW_Finish	<=	1'b1;
-			end 
-			else begin
-				UW_Finish	<=	1'b0;				
-			end	
-		end
-	end
-
-//Busy Signal (TEMP for WS)
-	always @(posedge M_AXI_ACLK) begin
-		if (!M_AXI_ARESETN) begin
-			UW_Busy	<=	1'b0;				
-		end 
-		else begin
-			if (S_cur	== Trigger) begin
-				UW_Busy	<=	1'b1;
-			end 
-		    else if(S_cur	== FINISH)
-				UW_Busy	<=	1'b0;
-		end
-	end
-
-	endmodule
+endmodule
