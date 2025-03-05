@@ -33,12 +33,23 @@ Verilog-Project-NMC for NCKU CAID Lab
 
   | Command | Physical address  | Data    |
   | ----    | ----              | ----    |
-  | Opcode  | 0x43Cx_4000       | 0x130   |
+  | Opcode  | 0x43Cx_4000       | 32'h130 |
   | Way     | 0x43Cx_4004       |Flash_Way|
 
   Need to Command Ready
+
+  ### Status Report Information ###
+    This is for 
+
+  [info] 
+
+
   3. Transfer
     opcode: 0x338
+
+
+  ### Status Report Information
+
 
   Need to Command Ready
   
