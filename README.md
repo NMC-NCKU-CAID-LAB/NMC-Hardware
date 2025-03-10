@@ -15,6 +15,8 @@ Verilog-Project-NMC for NCKU CAID Lab
   ## 0. Information ##
   Before watching the below information, you first know the flow for transfer data  
   1. Top view
+  ![image](https://github.com/user-attachments/assets/c8239245-9415-4048-8852-955a66dfc2d0)
+  2. Flow
 
 
   ## 1. Trigger ##
@@ -36,14 +38,19 @@ Verilog-Project-NMC for NCKU CAID Lab
     Need to attention that "Nand Flash Control" receive the "Trigger Command",
     The next command signal cannot transfer to "t4c_hlper_x" because the page data are transmitted
     from "NAND Flash Physical page" to "NAND Flash Controller page buffer". 
-    
-    The "busy signal" in diff. place have indevidual name:     
-    Q: This part have some problem about the real Busy signal is for what?  
-    A: Now I think so represent which way is trigger and want to read from. 
-    * NAND Flash Controller(v2nfc_x) : port (oReadyBusy[7:0])
-    * Helper (t4nfc_hlper_x) : port (iReadyBusy[7:0])
-    * Unet/Accelerator Wrapper :  
- 
+  > [!TIP]  
+  >  The "busy signal" in diff. place have indevidual name:     
+  >  Q: This part have some problem about the real Busy signal is for what?  
+  >  A: Now I think so represent which way is trigger and want to read from. 
+  >  * NAND Flash Controller(v2nfc_x) : port (oReadyBusy[7:0])
+  >  * Helper (t4nfc_hlper_x) : port (iReadyBusy[7:0])
+  >  * Unet/Accelerator Wrapper :  
+  
+  > [!IMPORTANT]
+    Q: What is "___ Report Address" & "___ Report " in the command?
+    A:
+
+
 
   ## 2. Check ##
 
@@ -51,9 +58,11 @@ Verilog-Project-NMC for NCKU CAID Lab
   | ----    | ----              | ----    |
   | Opcode  | 0x43Cx_4000       | 32'h130 |
   | Way     | 0x43Cx_4004       |Flash_Way|
-  |||
+  | Status Report Address|0x43Cx_4004 | |
   |||
   |Ready||
+
+
 
   ### Status Report Information ###
     
