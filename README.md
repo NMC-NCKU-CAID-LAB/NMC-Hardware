@@ -46,11 +46,10 @@ Verilog-Project-NMC for NCKU CAID Lab
   >  * Helper (t4nfc_hlper_x) : port (iReadyBusy[7:0])
   >  * Unet/Accelerator Wrapper :  
   
-  > [!IMPORTANT]
-    Q: What is "___ Report Address" & "___ Report " in the command?
-    A:
-
-
+  > [!IMPORTANT]  
+  >  Q: What is "___ Report Address" & "___ Report " in the command?  
+  >  A: Report Address is for NFC to store the information in the specific place.  
+  >     Report 
 
   ## 2. Check ##
 
@@ -58,9 +57,10 @@ Verilog-Project-NMC for NCKU CAID Lab
   | ----    | ----              | ----    |
   | Opcode  | 0x43Cx_4000       | 32'h130 |
   | Way     | 0x43Cx_4004       |Flash_Way|
-  | Status Report Address|0x43Cx_4004 | |
-  |||
-  |Ready||
+  | Status Report Address|0x43Cx_4008 | (1)|
+  |Clear Status Report| (1)| 32'h0|
+  |-        |-                  |-        |
+  |Ready    | 0x43Cx_3000       | 32'h1|
 
 
 
@@ -86,4 +86,13 @@ Verilog-Project-NMC for NCKU CAID Lab
 
   Need to Command Ready
   
-
+  ## Appendix
+  For now the report address ref. Base
+  
+  | Command | Physical address  | Data    |
+  | ----    | ----              | ----    |
+  | Opcode  | 0x43Cx_4000       | 32'h130 |
+  | Way     | 0x43Cx_4004       |Flash_Way|
+  | Status Report Address|0x43Cx_4008 | (1)|
+  |||
+  |Ready||1
