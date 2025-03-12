@@ -2,7 +2,10 @@
 Verilog-Project-NMC for NCKU CAID Lab
 
 # Environment
-  Vivado: 2019.1  
+  >[!IMPORTANT]  
+  >  Vivado: 2019.1  
+  >  SDK:    2019.1 
+
   IP Location:  
     1. Watershed version:   
     2. 8 channels version 
@@ -14,8 +17,8 @@ Verilog-Project-NMC for NCKU CAID Lab
 
   ## 0. Information ##
   Before watching the below information, you first know the flow for transfer data  
-  1. Top view
-  ![image](https://github.com/user-attachments/assets/c8239245-9415-4048-8852-955a66dfc2d0)
+  1. Top view  
+  ![image](./Image/NMC_Project_Top_view.jpg)
   2. Flow
 
 
@@ -46,10 +49,7 @@ Verilog-Project-NMC for NCKU CAID Lab
   >  * Helper (t4nfc_hlper_x) : port (iReadyBusy[7:0])
   >  * Unet/Accelerator Wrapper :  
   
-  > [!IMPORTANT]  
-  >  Q: What is "___ Report Address" & "___ Report " in the command?  
-  >  A: Report Address is for NFC to store the information in the specific place.  
-  >     Report 
+
 
   ## 2. Check ##
 
@@ -58,17 +58,9 @@ Verilog-Project-NMC for NCKU CAID Lab
   | Opcode  | 0x43Cx_4000       | 32'h130 |
   | Way     | 0x43Cx_4004       |Flash_Way|
   | Status Report Address|0x43Cx_4008 | (1)|
-  |Clear Status Report| (1)| 32'h0|
+  |Clear Status Report| (1)     | 32'h0   |
   |-        |-                  |-        |
-  |Ready    | 0x43Cx_3000       | 32'h1|
-
-
-
-  ### Status Report Information ###
-    
-  This is a signal that for know 
-
-  [info] 
+  |Ready    | 0x43Cx_3000       | 32'h1   |
 
 
   ## 3. Transfer ##
@@ -81,10 +73,18 @@ Verilog-Project-NMC for NCKU CAID Lab
   | -       | -                 | -       |
   |Ready    | 0x43Cx_3000       | 32'd1   |
 
-  ### Status Report Information
+  ### Report Information ###
+  > [!IMPORTANT]  
+  >  Q: What is "___ Report Address" & "___ Report " in the command?  
+  >  A: Address that you can discuss with firmware & change the place. 
+  >  * Report Address is for NFC to store the information in the specific place.  
+  >  * Report is the real information for checking whether NFC can execute normally. 
 
-
-  Need to Command Ready
+  >[!info] 
+  > ### Status Report (1) ###
+  > 
+  > ### Error Info (2)
+  > ### Completion Report (3) ###
   
   ## Appendix
   For now the report address ref. Base
