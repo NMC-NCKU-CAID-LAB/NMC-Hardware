@@ -1,6 +1,9 @@
 # Verilog-Project-NMC
-Verilog-Project-NMC for NCKU CAID Lab
 
+  Contributor:
+<a href="https://github.com/DarrenHuang0411/Project-NMC-Hardware/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=DarrenHuang0411/Project-NMC-Hardware" />
+</a>
 # Environment
   >[!IMPORTANT]  
   >  Vivado: 2019.1  
@@ -8,19 +11,18 @@ Verilog-Project-NMC for NCKU CAID Lab
 
   IP Location:  
     1. Watershed version:   
-    2. 8 channels version 
+    2. 8 channels version: 
 
 # Wrapper Command Flow #
-  3 steps: Trigger, Check, & Transfer
-  
-  Way : 8 bits
 
   ## 0. Information ##
-  Before watching the below information, you first know the flow for transfer data  
-  1. Top view  
-  ![image](./Image/NMC_Project_Top_view.jpg)
-  2. Flow
+  Before watching the below Section 1~3, you first know the flow for transfer data :
+  ### 0.1. Top view  
+  ![Top_view](./Image/NMC_Project_Top_view.jpg)
+  ### 0.2. NMC Flow  
+  3 steps: Trigger, Check, & Transfer  
 
+  ![Flow](./Image/NMC_Project_NMC_Flow.jpg)
 
   ## 1. Trigger ##
 
@@ -33,7 +35,7 @@ Verilog-Project-NMC for NCKU CAID Lab
   |Ready    | 0x43Cx_3000       | 32'd1   |
 
   * ### Note: ### 
-    1. Flash_Way: Unary type
+    1. Flash_Way: Unary type (8 bits)
     2. B: Block
     3. P: Page
 
@@ -80,19 +82,26 @@ Verilog-Project-NMC for NCKU CAID Lab
   >  * Report Address is for NFC to store the information in the specific place.  
   >  * Report is the real information for checking whether NFC can execute normally. 
 
-  >[!info] 
+  >[!INFO] 
   > ### Status Report (1) ###
-  > 
-  > ### Error Info (2)
+  > You may see different value, like 0x1FFC1 or 0x1C1C1, in  individual channel. However, the value generally in self channel is the same. The below information is explain how to konw the status:  
+  > bit 0 -> completion flag of Read Status operation  
+  > bit 1~8 -> result of Read Status operation  
+  > bit 9~16 -> BusyReady value of way 0~7  
+  >If you shift right statusReport by 1, you can find the result of Read Status.
+  0x1FFC1 >> 1 = 0xFFE0
+  ![STATUS_REPORT](./Image/NMC_Project_StatusReport.jpg) 
+
+  > ### Error Info (2) ###
+  >
   > ### Completion Report (3) ###
   
   ## Appendix
-  For now the report address ref. Base
+  For now temp. the report ref. Baseaddress
   
-  | Command | Physical address  | Data    |
-  | ----    | ----              | ----    |
-  | Opcode  | 0x43Cx_4000       | 32'h130 |
-  | Way     | 0x43Cx_4004       |Flash_Way|
-  | Status Report Address|0x43Cx_4008 | (1)|
-  |||
-  |Ready||1
+  | Command | Bseaddress  | Calculate real address|
+  | ----    | ----        | ----                  |
+  | (1)     | 0x1700_0100 | + 32  * c +　    w    |
+  | (2)     | 0x1700_0200 | + 352 * c +　44* w    |
+  | (3)     | 0x1700_0000 | + 32  * c +　 4* w    |
+  | -       | -           | -                     | 
