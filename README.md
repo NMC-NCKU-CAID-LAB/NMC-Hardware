@@ -6,8 +6,13 @@
 </a>
 # Environment
   >[!IMPORTANT]  
-  >  Vivado: 2019.1  
-  >  SDK:    2019.1 
+  >    | Tool | Version  |
+  >    | :----: | :----: |
+  >    | Vivado | 2019.1 |
+  >    | SDK    | 2019.1 |
+  >    | Board  | below  |  
+  >
+  >    ![Top_view](./Image/NMC_Project_Device.jpg)
 
   IP Location:  
     1. Watershed version:   
