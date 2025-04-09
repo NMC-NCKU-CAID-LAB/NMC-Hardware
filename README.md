@@ -18,6 +18,12 @@
     1. Watershed version:   
     2. 8 channels version: 
 
+# Introduction #
+
+ This object is for transferring RGB image data from 3D Nand flash to target BRAM.  
+ Moreover, the 8-channel version is a target simultaneously transferring 8* 16k(1 page).  
+ Thus, we design a wrapper to speed up the AI model (Unet) communication to flash memory. 
+
 # Wrapper Command Flow #
 
   ## 0. Information ##
