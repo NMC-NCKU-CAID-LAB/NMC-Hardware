@@ -91,7 +91,7 @@
   >  * Report Address is for NFC to store the information in the specific place.  
   >  * Report is the real information for checking whether NFC can execute normally. 
 
-  >[!INFOMTION]  
+  >[!NOTE]  
   > The below 3 Information need to use Read channel to read back the value.  
   > * ### Note!!  
   >   The flow before reading back the value need a claer step to check the memory  
@@ -99,14 +99,13 @@
   > ### Status Report (1) ###
   > You may see different value, like 0x1FFC1 or 0x1C1C1, in  individual channel. However, the value generally in self channel is the same. The below information is explain how to konw the status:  
   > bit 0 -> completion flag of Read Status operation  
-  > bit 1~8 -> result of Read Status operation  
-  > bit 9~16 -> BusyReady value of way 0~7  
-  >If you shift right statusReport by 1, you can find the result of Read Status.
-  0x1FFC1 >> 1 = 0xFFE0
-  ![STATUS_REPORT](./Image/NMC_Project_StatusReport.jpg) 
-
-  I'm not sure whether now ECC error mode is open.
-  If ECC error mode is open, check flow in firmware like the below step(2)(3): 
+  > bit 1 ~ 8 -> result of Read Status operation  
+  > bit 9 ~ 16 -> BusyReady value of way 0~7  
+  > If you shift right statusReport by 1, you can find the result of Read Status.
+  > 0x1FFC1 >> 1 = 0xFFE0
+  > ![STATUS_REPORT](./Image/NMC_Project_StatusReport.jpg) 
+  > I'm not sure whether now ECC error mode is open.
+  > If ECC error mode is open, check flow in firmware like the below step(2)(3): 
   > ### Error Info (2) ###  
   >   Only the upper 4 bytes is ecc ErrorInfoTable,  
   >   and the value threshold is 'd24 
@@ -114,8 +113,8 @@
   >   | :----:  | :----:      |
   >   | Normal  | 0x0000_0000 |
   >   | Error   | 0x1100_0000 |
-  
-  If ECC error mode is close, only check flow in firmware like the below step(3): 
+  >
+  > If ECC error mode is close, only check flow in firmware like the below step(3): 
   > ### Completion Report (3) ###
   >   |  Type   | Completion Report |
   >   | :----:  | :----:      |
